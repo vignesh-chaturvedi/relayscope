@@ -52,9 +52,10 @@ Events use Anchor's event CPI: the program invokes itself with the tag `e445a52e
 From a sample taken on 22 November 2026:
 
 - The program processed about 1,000 transactions in about 43 hours. Most of them are relayer work: closes, swaps and payouts.
-- In a sample of 134 transactions, 37 donation events appeared. 28 of them came through CPI from `pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ`, which appears to be pump.fun's fee program. The other 9 were direct calls. Phase 1 confirms who the calling programs are.
+- In a sample of 134 recent transactions, 37 donation events appeared. 28 of them came through CPI from `pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ`, pump.fun's fee program, which logs `CrankDonationFeePda` when it pays Charity Coin fees into the relay. The other 9 were direct calls.
+- In an even sample of 562 transactions across the whole history, 205 of 209 donations were `donate_pubkey_config_id_with_payer_v1` calls from that fee program. Older bps payouts outnumber exact payouts 114 to 5, so reconciliation must handle both generations.
 - One settled SOL epoch paid 160.251464 USDC: 128.201171 to the beneficiary and 32.050293 as fee. That fee is exactly 20.00%, matching the 2,000 bps API fee in the program's documentation.
-- Full history: more than 220,000 transactions, reaching back past early May 2026. Phase 2 records the exact count and the date of the first transaction. At this size, the backfill needs a paid RPC.
+- Full history on 22 November 2026: 242,765 transactions since 18 February 2026, 17,530 of them failed. About 99% came after Charity Coins launched on 29 April 2026. At this size, the backfill needs a paid RPC.
 
 ## Architecture
 
@@ -85,7 +86,8 @@ relayscope/
     relayscope/              the binary: backfill, live, verify, serve, idl subcommands
   idl/
     donation_relay.json      pinned copy of the on-chain IDL, with its SHA-256
-  fixtures/                  real mainnet transactions used as golden test cases
+  fixtures/                  real mainnet transactions, as JSON-RPC returns them
+    decoded/                 what each one must decode to (golden files)
   web/                       Vite + React + TypeScript front end
   docs/
     BUILD_PLAN.md            this file
@@ -165,6 +167,12 @@ Each phase ends with `cargo fmt`, `cargo clippy -D warnings`, the tests, then a 
 - Tests: golden decodes of every fixture, a test that every IDL event and instruction has a decoder, and discriminators computed from the IDL.
 - **Done when:** every fixture decodes to the expected values and `relayscope idl check` matches mainnet.
 - **Commit:** `Decode every Donation Relay instruction and event`
+
+**Status: done.** 17 real transactions are fixtures, covering 12 of the 15 instructions and 6 of the 7 events. Three never appeared in an even sample of the history: `donate_native_v1`, `donate_pubkey_config_id_v1` and `recover_bridge_payment_v1`, with its `BridgePaymentRecoveredV1Event`. Round-trip tests cover them until a real sample turns up. What the phase found:
+
+- The program's first transactions are Anchor's built-in IDL management instructions. They have their own tag and are recorded separately, not decoded as relay instructions.
+- On launch day, pump.fun's fee program rejected calls because it expected a different relay program, `DRLYxueWz6iymdsaRCER6iv6v9zL7gFWANwDL2V5VUx1`. That program is deployed on mainnet with about 900 transactions since January 2026. Phase 2 decides whether it belongs in scope.
+- In the bridged USDC epoch fixture, the fee is 55,799 on 1,860,005 settled: one unit below 3% of the total. That fits a 3% fee taken per donation and rounded down. Phase 3 tests that rule across the history.
 
 ### Phase 2: backfill and storage
 
@@ -252,6 +260,7 @@ Each phase ends with `cargo fmt`, `cargo clippy -D warnings`, the tests, then a 
 | Donor messages can contain links or spam | The overlay strips links and caps length by default, and messages can be turned off. |
 | Bridge donations start on another chain | Only the Solana leg is proven. The source transaction is shown as a label when the operator's public transfer API returns it. |
 | Per-donation amounts are estimates | They are labelled as estimates. Exact amounts exist only per epoch, and the page says so. |
+| A second relay program, `DRLYxueW...`, is on mainnet | Phase 2 decodes a sample of its transactions. If it carries real donations with the same IDL, it is added as a second source. Otherwise it is documented and left out. |
 
 ## Commit conventions
 

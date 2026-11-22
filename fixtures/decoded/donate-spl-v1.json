@@ -1,0 +1,104 @@
+{
+  "signature": "5Q4weU5nikM2VHcYTzQYMUcdkcdJBoG6ZapRrCzny79JmmhJxek2zE3VdRvzPdXhrCrb8Y5tQWvxeF2AdcKQSwPZ",
+  "slot": 401156759,
+  "block_time": 1771444386,
+  "fee_payer": "DnK5zChWumLqRLkDuX4QUzHPV844ePfWuznjxbDFeMxe",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 5,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "donate_v1",
+      "args": {
+        "amount": 100000,
+        "config_id": "0x505435a41d820d2a24c4e412cc23224f14792005eef8eaebb0f8b95ab2fa8784",
+        "tip_bps": 0,
+        "message": "",
+        "credited_to": "DnK5zChWumLqRLkDuX4QUzHPV844ePfWuznjxbDFeMxe"
+      },
+      "accounts": [
+        {
+          "name": "epoch_tracker",
+          "address": "42qf548TJMwtshDeZ2Mz2dXvVYtBXufjSgZUApH8cYNB"
+        },
+        {
+          "name": "debouncer",
+          "address": "FYRwBeRdQnzwhd6PWEjZMgaiWTVrrsJJoSrGV4QrWbTc"
+        },
+        {
+          "name": "debouncer_token_account",
+          "address": "C5ZUYnwRoUhh5w2red4Vc1WxPaFZM2XkYtoqvG36fydD"
+        },
+        {
+          "name": "mint",
+          "address": "So11111111111111111111111111111111111111112"
+        },
+        {
+          "name": "from_token_account",
+          "address": "8jvwrZgHYPCBbm62jiK5aZRCTado7m5zhJ99Hns9BN91"
+        },
+        {
+          "name": "from",
+          "address": "DnK5zChWumLqRLkDuX4QUzHPV844ePfWuznjxbDFeMxe"
+        },
+        {
+          "name": "mint_whitelist",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "token_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "system_program",
+          "address": "ATdCx4f5ZitkcsW19w71SrV8YWNXhVezLB8X1QiNF9qw"
+        },
+        {
+          "name": "event_authority",
+          "address": "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+        }
+      ],
+      "remaining_accounts": []
+    }
+  ],
+  "events": [
+    {
+      "position": {
+        "top": 5,
+        "inner": 8
+      },
+      "emitted_by": 0,
+      "name": "DonationMadeV1Event",
+      "fields": {
+        "daas_event_discriminator": "DonationV1",
+        "config_id": "0x505435a41d820d2a24c4e412cc23224f14792005eef8eaebb0f8b95ab2fa8784",
+        "mint": "So11111111111111111111111111111111111111112",
+        "epoch": 0,
+        "gross_amount": 100000,
+        "tip": 0,
+        "message": "",
+        "credited_to": "DnK5zChWumLqRLkDuX4QUzHPV844ePfWuznjxbDFeMxe"
+      }
+    }
+  ],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "C5ZUYnwRoUhh5w2red4Vc1WxPaFZM2XkYtoqvG36fydD",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "FYRwBeRdQnzwhd6PWEjZMgaiWTVrrsJJoSrGV4QrWbTc",
+      "decimals": 9,
+      "pre": 0,
+      "post": 100000
+    }
+  ]
+}

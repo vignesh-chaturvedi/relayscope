@@ -1,0 +1,22 @@
+[package]
+name = "relayscope"
+description = "Real-time tracker for the Donation Relay program on Solana"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+relayscope-core.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+hex.workspace = true
+flate2.workspace = true
+chrono.workspace = true
+base64 = "0.22"

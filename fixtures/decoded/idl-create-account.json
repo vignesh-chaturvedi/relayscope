@@ -1,0 +1,17 @@
+{
+  "signature": "2L2VPeQjCGwNZrzDSert576mZkH8AB28midxyhPYuDpXqsaCzgB1famWxfNqAZVAFtGLWiXh8sHkA9bgcTxf1bZz",
+  "slot": 401120113,
+  "block_time": 1771430009,
+  "fee_payer": "prodARfLWf9ch7yfzQr6Z8tqiee38BHyMi6TW7puYHJ",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [],
+  "events": [],
+  "idl_management": [
+    {
+      "top": 0,
+      "inner": null
+    }
+  ],
+  "token_balances": []
+}

@@ -1,0 +1,108 @@
+{
+  "blockTime": 1772316738,
+  "meta": {
+    "computeUnitsConsumed": 8171,
+    "costUnits": 9681,
+    "err": null,
+    "fee": 80000,
+    "innerInstructions": [
+      {
+        "index": 2,
+        "instructions": [
+          {
+            "accounts": [
+              0,
+              1
+            ],
+            "data": "111158qCKCrjm3CDJeqAUC2TC1PWr2XqFG6cxtBYZsudXPBVBvjEc686a6XFpgr8G4arMq",
+            "programIdIndex": 2,
+            "stackHeight": 2
+          }
+        ]
+      }
+    ],
+    "loadedAddresses": {
+      "readonly": [],
+      "writable": []
+    },
+    "logMessages": [
+      "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+      "Program ComputeBudget111111111111111111111111111111 success",
+      "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+      "Program ComputeBudget111111111111111111111111111111 success",
+      "Program RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu invoke [1]",
+      "Program log: Instruction: UpsertMintWhitelistV1",
+      "Program 11111111111111111111111111111111 invoke [2]",
+      "Program 11111111111111111111111111111111 success",
+      "Program RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu consumed 7871 of 199700 compute units",
+      "Program RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu success"
+    ],
+    "postBalances": [
+      91811600,
+      8108400,
+      1,
+      1,
+      1141440
+    ],
+    "postTokenBalances": [],
+    "preBalances": [
+      100000000,
+      0,
+      1,
+      1,
+      1141440
+    ],
+    "preTokenBalances": [],
+    "rewards": [],
+    "status": {
+      "Ok": null
+    }
+  },
+  "slot": 403370744,
+  "transaction": {
+    "message": {
+      "accountKeys": [
+        "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc",
+        "E8R1dqUAhazSpQMjLCEXdC7M7BWgk1vdwaobazKavhoE",
+        "11111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+      ],
+      "header": {
+        "numReadonlySignedAccounts": 0,
+        "numReadonlyUnsignedAccounts": 3,
+        "numRequiredSignatures": 1
+      },
+      "instructions": [
+        {
+          "accounts": [],
+          "data": "3qi1MbrtkR83",
+          "programIdIndex": 3,
+          "stackHeight": 1
+        },
+        {
+          "accounts": [],
+          "data": "Fj2Eoy",
+          "programIdIndex": 3,
+          "stackHeight": 1
+        },
+        {
+          "accounts": [
+            1,
+            0,
+            2
+          ],
+          "data": "XmcZbEp7FkK99k8Nu3BQ1o1miS2wsCHq1RKxgX9yU7N8oxW7ZSjEkqhkd1WuDhv7R46qs7ccuNrC5uGXC5bPJggM13zMDEUp8zGKHUswQXvCecZ1BZ1Sqcbp5d1ZTFfBHtTgqBH6BnT4bMGYBQ6cSGxMr7aiLDUqWj7BWiTk3j7yd2AQkbc54kg3MkV1jXpRoPvE2Un8RDxHL2C88rhjdcH5PYixmaH9QaJvU5LfHFR",
+          "programIdIndex": 4,
+          "stackHeight": 1
+        }
+      ],
+      "recentBlockhash": "8UsEPaWGKnRFdV6ymLELL8AhMUTTJh5SLZSqpYQPuaR5"
+    },
+    "signatures": [
+      "2ncPDBGnujDXVqeEnyhNkbWSgUpwK5XcLvSXH2eb3DS9C7FvTwtHHrCdxN1RKiYpcAK1gmKCQfFrRyDCP4WTW94u"
+    ]
+  },
+  "transactionIndex": 319,
+  "version": "legacy"
+}

@@ -1,0 +1,110 @@
+{
+  "signature": "4rmiDYLzSfqFmZPgcwawFcTgePSR63sX3pfdjh44ZFVu39L61iDFUpgo5bDLTzNYwEPCzys6RXrzFEnkWSKzXfLg",
+  "slot": 472583417,
+  "block_time": 1795359660,
+  "fee_payer": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 0,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "close_donation_epoch_v1",
+      "args": {
+        "config_id": "0x05ffe92512e1ee4aca3d934ab7655d26b59f9d52f9f13795f5945e5a368a6ed1",
+        "epoch": 62
+      },
+      "accounts": [
+        {
+          "name": "distribution",
+          "address": "5NvdA5ycRoLEf2YmTuMNoevz4G8BxW3tvgyjKQgjU2DU"
+        },
+        {
+          "name": "distribution_token_account",
+          "address": "HiKpzQqxnXS2steaN2KqfKoLfarKzzjxm2Zh4sWWkBhG"
+        },
+        {
+          "name": "epoch_tracker",
+          "address": "3pgaAdbWBeHCRwMvPtS1zvLQYks44P8WTfC2fpG5EmNV"
+        },
+        {
+          "name": "debouncer",
+          "address": "Ck8wydxomxizSy36rbFZnuW5gYfaG8uFqW671ZYjPkD1"
+        },
+        {
+          "name": "debouncer_token_account",
+          "address": "8SAwDRByFwKiEuMqrrCkNRmY7v38JXKELorQKbkN9hKb"
+        },
+        {
+          "name": "mint",
+          "address": "So11111111111111111111111111111111111111112"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "signer",
+          "address": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "address": "ATdCx4f5ZitkcsW19w71SrV8YWNXhVezLB8X1QiNF9qw"
+        },
+        {
+          "name": "program",
+          "address": "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+        }
+      ],
+      "remaining_accounts": []
+    }
+  ],
+  "events": [
+    {
+      "position": {
+        "top": 0,
+        "inner": 7
+      },
+      "emitted_by": 0,
+      "name": "DonationEpochClosedV1Event",
+      "fields": {
+        "daas_event_discriminator": "DonationEpochClosedV1",
+        "config_id": "0x05ffe92512e1ee4aca3d934ab7655d26b59f9d52f9f13795f5945e5a368a6ed1",
+        "mint": "So11111111111111111111111111111111111111112",
+        "epoch": 62,
+        "gross_epoch_amount": 41189654010
+      }
+    }
+  ],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "8SAwDRByFwKiEuMqrrCkNRmY7v38JXKELorQKbkN9hKb",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "Ck8wydxomxizSy36rbFZnuW5gYfaG8uFqW671ZYjPkD1",
+      "decimals": 9,
+      "pre": 41189654010,
+      "post": 0
+    },
+    {
+      "account": "HiKpzQqxnXS2steaN2KqfKoLfarKzzjxm2Zh4sWWkBhG",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "5NvdA5ycRoLEf2YmTuMNoevz4G8BxW3tvgyjKQgjU2DU",
+      "decimals": 9,
+      "pre": 0,
+      "post": 41189654010
+    }
+  ]
+}

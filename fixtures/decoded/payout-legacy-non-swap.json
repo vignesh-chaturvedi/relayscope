@@ -1,0 +1,142 @@
+{
+  "signature": "2g4wicMvcm1AxT5GL4Cd85tJvJWKyWt9G2Vgm9wiHX62rs5MeiTWBjknWzPmxzuEUpF3rX88hTcvE1Z6DphinALY",
+  "slot": 405534098,
+  "block_time": 1773169592,
+  "fee_payer": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 2,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "distribute_non_swap_output_mint_v1",
+      "args": {
+        "shares": [
+          {
+            "share_type": "Beneficiary",
+            "address": "CfTps478EwHksxHCnL76MYo9jduoUjCaNnK5HZenVSyT",
+            "bps": 9700
+          },
+          {
+            "share_type": "Fee",
+            "address": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+            "bps": 300
+          }
+        ]
+      },
+      "accounts": [
+        {
+          "name": "epoch_tracker",
+          "address": "EGZHgzFgyUoJGAvLSBJbiVv4myin24JLSH6j4mbCbwen"
+        },
+        {
+          "name": "debouncer",
+          "address": "8i4emFDW8SDmvuAD4z9DGhnTKc7LN6bouanLSyY6B12u"
+        },
+        {
+          "name": "distribution",
+          "address": "7CFY7khVh9WVSPJkztSjiTBSQf6pWj1JsoxRpM3jQLJY"
+        },
+        {
+          "name": "distribution_token_account",
+          "address": "6ApQiVk3jr5wJ7m6TFpMycyrznHqijQnATrQyKtcupPM"
+        },
+        {
+          "name": "mint",
+          "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        },
+        {
+          "name": "signer",
+          "address": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "address": "ATdCx4f5ZitkcsW19w71SrV8YWNXhVezLB8X1QiNF9qw"
+        },
+        {
+          "name": "program",
+          "address": "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+        }
+      ],
+      "remaining_accounts": [
+        "PzcoCJeGtAyVfEN9rxtsLwevJju6Xk2rm6K5ut8Cnf8",
+        "B9kqFcBAkmZEVuycGaCGnHmMyTKAEUB2qRtW2NmzxZWg"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "position": {
+        "top": 2,
+        "inner": 3
+      },
+      "emitted_by": 0,
+      "name": "DonationEpochProcessedV1Event",
+      "fields": {
+        "daas_event_discriminator": "DonationEpochProcessedV1",
+        "config_id": "0x4862fdeff5f3e3e53c9c19f1d833a9ceac6e1580fe8a9c51e4d89c85bb6ea72f",
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "epoch": 0,
+        "settled_amount": 1510000,
+        "settlement_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "transfers": [
+          {
+            "share_type": "Beneficiary",
+            "address": "CfTps478EwHksxHCnL76MYo9jduoUjCaNnK5HZenVSyT",
+            "amount": 1464700,
+            "bps": 9700
+          },
+          {
+            "share_type": "Fee",
+            "address": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+            "amount": 45300,
+            "bps": 300
+          }
+        ]
+      }
+    }
+  ],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "6ApQiVk3jr5wJ7m6TFpMycyrznHqijQnATrQyKtcupPM",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "7CFY7khVh9WVSPJkztSjiTBSQf6pWj1JsoxRpM3jQLJY",
+      "decimals": 6,
+      "pre": 1510000,
+      "post": 0
+    },
+    {
+      "account": "B9kqFcBAkmZEVuycGaCGnHmMyTKAEUB2qRtW2NmzxZWg",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+      "decimals": 6,
+      "pre": 0,
+      "post": 45300
+    },
+    {
+      "account": "PzcoCJeGtAyVfEN9rxtsLwevJju6Xk2rm6K5ut8Cnf8",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "CfTps478EwHksxHCnL76MYo9jduoUjCaNnK5HZenVSyT",
+      "decimals": 6,
+      "pre": 597856,
+      "post": 2062556
+    }
+  ]
+}

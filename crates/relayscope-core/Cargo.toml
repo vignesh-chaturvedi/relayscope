@@ -1,0 +1,18 @@
+[package]
+name = "relayscope-core"
+description = "Decoding, data model and reconciliation for the Donation Relay program on Solana"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+borsh.workspace = true
+bs58.workspace = true
+hex.workspace = true
+sha2.workspace = true
+curve25519-dalek.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

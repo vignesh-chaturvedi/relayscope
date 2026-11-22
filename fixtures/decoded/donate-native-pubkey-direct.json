@@ -1,0 +1,108 @@
+{
+  "signature": "4hYQ34wPRea8PqjrGw8fMsHMEJ4PER2xAo8uQ6vb6jNc2ERNAnxaQyDXdtbyDtaWGgpz9KuuSnujZnSXxUu1vdkt",
+  "slot": 472532939,
+  "block_time": 1795348804,
+  "fee_payer": "6kTav1iJMyogxvRLCKM4yzJ2rSUC51Mh9UphNpaXMUtf",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 2,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "donate_native_pubkey_config_id_v1",
+      "args": {
+        "amount": 16493290,
+        "config_id": "7fsKKNzVoyR8MGqCjciAfU64o8CuTP1E895gP1qsUPoR",
+        "tip_bps": 0,
+        "message": "Ho ho ho! Sent from Secret Santa ($SANTA). A small gift for the kids you help. secretsantasol.com",
+        "credited_to": "6kTav1iJMyogxvRLCKM4yzJ2rSUC51Mh9UphNpaXMUtf"
+      },
+      "accounts": [
+        {
+          "name": "epoch_tracker",
+          "address": "F2SwSG4YdyxzgC3jZ6CeD1ANqAqSArhQdaQ38Yr2yZNS"
+        },
+        {
+          "name": "debouncer",
+          "address": "5A2s6cNtfuXbNp2a4CuWq8XyH5Y4jW11zzAomu5Dg2o8"
+        },
+        {
+          "name": "debouncer_token_account",
+          "address": "5UfFxRwe1zKZvqzVAEMDbBayXh9VV2rPj5UY4n6EiP6p"
+        },
+        {
+          "name": "mint",
+          "address": "So11111111111111111111111111111111111111112"
+        },
+        {
+          "name": "temp_wsol_token_account",
+          "address": "GQjmE9SbZEwFbUJwcvTStp64DTV2C7PWMkV62UBPY238"
+        },
+        {
+          "name": "from",
+          "address": "6kTav1iJMyogxvRLCKM4yzJ2rSUC51Mh9UphNpaXMUtf"
+        },
+        {
+          "name": "mint_whitelist",
+          "address": "E8R1dqUAhazSpQMjLCEXdC7M7BWgk1vdwaobazKavhoE"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "address": "ATdCx4f5ZitkcsW19w71SrV8YWNXhVezLB8X1QiNF9qw"
+        },
+        {
+          "name": "program",
+          "address": "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+        }
+      ],
+      "remaining_accounts": []
+    }
+  ],
+  "events": [
+    {
+      "position": {
+        "top": 2,
+        "inner": 13
+      },
+      "emitted_by": 0,
+      "name": "DonationMadeV1Event",
+      "fields": {
+        "daas_event_discriminator": "DonationV1",
+        "config_id": "0x631b15a64d03c91971105885649161ef707671b98f73990d7de822138c4006f4",
+        "mint": "So11111111111111111111111111111111111111112",
+        "epoch": 0,
+        "gross_amount": 16493290,
+        "tip": 0,
+        "message": "Ho ho ho! Sent from Secret Santa ($SANTA). A small gift for the kids you help. secretsantasol.com",
+        "credited_to": "6kTav1iJMyogxvRLCKM4yzJ2rSUC51Mh9UphNpaXMUtf"
+      }
+    }
+  ],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "5UfFxRwe1zKZvqzVAEMDbBayXh9VV2rPj5UY4n6EiP6p",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "5A2s6cNtfuXbNp2a4CuWq8XyH5Y4jW11zzAomu5Dg2o8",
+      "decimals": 9,
+      "pre": 0,
+      "post": 16493290
+    }
+  ]
+}

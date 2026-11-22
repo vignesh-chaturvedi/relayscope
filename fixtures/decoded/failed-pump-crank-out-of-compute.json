@@ -1,0 +1,45 @@
+{
+  "signature": "EJRvogCY7hDhCA17U12FffdHQ3DyMFUtQdK334nwwVrauPNMdvQvvMafBU5ZYVhFLWb4YKp2zfaRD7mNrA6BfVS",
+  "slot": 472259352,
+  "block_time": 1795289978,
+  "fee_payer": "69Zu59ATup9WWxzqikqvZmTK5FrEAE56NJpfPELxvGuq",
+  "succeeded": false,
+  "program_error": null,
+  "instructions": [],
+  "events": [],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "39mN2hypY6HkqXTF2CdERzmf7iNsqWABiE9R1njkaE6K",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "537W4JYSdrMcqT4U13v833axx5FBN7f1mXvP1k9bUDJS",
+      "decimals": 9,
+      "pre": 621521,
+      "post": 621521
+    },
+    {
+      "account": "4RnVm74AXG9kbKVkCPzzxQ7F4AuSdN3dYKcQ19AT5b2j",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "BXEKSGrWHygmbRkQ2KHfRUpSBeZZgZWnzrw7a8URZZ7D",
+      "decimals": 9,
+      "pre": 45278513482,
+      "post": 45278513482
+    },
+    {
+      "account": "AKFzbGfSXuLkcFsgta4HXwhmhqgRw5tWPfgXL9MWHnvE",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "BLZBWRS8ZRXNQ7sfoybcDQwrUxPxzkLRCn2EXk8cLhbC",
+      "decimals": 9,
+      "pre": 12508456485,
+      "post": 12508456485
+    },
+    {
+      "account": "FfXJrXz66sNDHix4BgZKNxJYtNfKQqDAk8QUXNEiRVkA",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "G2tfotVcMsv6EU1uHDXH7UG9XXPJpnzGBjSNmYAjfAfo",
+      "decimals": 9,
+      "pre": 0,
+      "post": 0
+    }
+  ]
+}

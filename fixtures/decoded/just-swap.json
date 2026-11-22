@@ -1,0 +1,172 @@
+{
+  "signature": "5esPyukYt1ZUGfBpa4WWYHXPBs8dx6V47vgHcjyhdBTy893w2qW38HnMVMjEVaNjcU93FkPJmWjwHYBff7XKXwVG",
+  "slot": 472516875,
+  "block_time": 1795345344,
+  "fee_payer": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 2,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "just_swap_v1",
+      "args": {
+        "jupiter_swap_ix_data": "0xbb64facc31c4af1407eb4525000000002c36a1020000000064000000000001000000c310270001"
+      },
+      "accounts": [
+        {
+          "name": "epoch_tracker",
+          "address": "4RBMXEmawQoN7iestQvetUSVdj1bshRPAM8SXRPtjuym"
+        },
+        {
+          "name": "debouncer",
+          "address": "36WF7drayqnzY9VfAsNtYsurJDViuCE6XSwvh6FhTxgr"
+        },
+        {
+          "name": "distribution",
+          "address": "8uqtWtm1Dfg3Q48yyaD3LMxTGY6GsTAb4SCBYg4w9JvS"
+        },
+        {
+          "name": "swap_receipt",
+          "address": "4A5zMMcJXia4JxxU9PznJiuenzpjkSogLxocaVY1xi5A"
+        },
+        {
+          "name": "distribution_token_account",
+          "address": "GbNL3DXwEp1Q2KFWPhdNMpezpcGWUkJJ5EZvcCTucXCN"
+        },
+        {
+          "name": "output_distribution_token_account",
+          "address": "D8U5NgF6AqZTZ5kdoRbeaPynCpqEFPFRRgUs52VB6Ymv"
+        },
+        {
+          "name": "mint",
+          "address": "So11111111111111111111111111111111111111112"
+        },
+        {
+          "name": "output_mint",
+          "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        },
+        {
+          "name": "output_mint_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "signer",
+          "address": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "jupiter_program",
+          "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "address": "ATdCx4f5ZitkcsW19w71SrV8YWNXhVezLB8X1QiNF9qw"
+        },
+        {
+          "name": "program",
+          "address": "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+        }
+      ],
+      "remaining_accounts": [
+        "8uqtWtm1Dfg3Q48yyaD3LMxTGY6GsTAb4SCBYg4w9JvS",
+        "GbNL3DXwEp1Q2KFWPhdNMpezpcGWUkJJ5EZvcCTucXCN",
+        "D8U5NgF6AqZTZ5kdoRbeaPynCpqEFPFRRgUs52VB6Ymv",
+        "So11111111111111111111111111111111111111112",
+        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+        "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "ZERor4xhbUycZ6gb9ntrhqscUcZmAbQDjEAtCf4hbZY",
+        "BwNJma5cJzn9jobrsc4d7UuWHekjai1B7oUdRzRnVqAM",
+        "ziVBjUsjvWLdaeNcFT5DuuWxFgUUEExs2jb4qgTqYSy",
+        "3QrF4jzbFn8EWWZi55wonziCoC3ZK2eLmwT2v3EBEsYq",
+        "6wWVbLeHDVHvCCsLprB85jkbU1JhS9VezABT2ZZFJ5BB",
+        "7bFrELm2JUsKfjghdHRXo75ZzQwKWATMLreP5QSnKLcE",
+        "D5trkFE3C7QeyFATEWjEHyKXXXSGpggbP7V9SMWwVBkz",
+        "GbNL3DXwEp1Q2KFWPhdNMpezpcGWUkJJ5EZvcCTucXCN",
+        "D8U5NgF6AqZTZ5kdoRbeaPynCpqEFPFRRgUs52VB6Ymv",
+        "8uqtWtm1Dfg3Q48yyaD3LMxTGY6GsTAb4SCBYg4w9JvS",
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "So11111111111111111111111111111111111111112",
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "Sysvar1nstructions1111111111111111111111111",
+        "4cG31VNF9TzFinNc7BmnjhFvGjxkY3sCETVMtMgbrhPs"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "position": {
+        "top": 2,
+        "inner": 12
+      },
+      "emitted_by": 0,
+      "name": "DonationEpochJustSwappedV1Event",
+      "fields": {
+        "daas_event_discriminator": "DonationEpochJustSwappedV1",
+        "config_id": "0x9c2b966285599317f3f379b018d63bf3f4a6743c0e351b32aa1e3ac67f703148",
+        "mint": "So11111111111111111111111111111111111111112",
+        "epoch": 9,
+        "distribution": "8uqtWtm1Dfg3Q48yyaD3LMxTGY6GsTAb4SCBYg4w9JvS",
+        "swap_receipt": "4A5zMMcJXia4JxxU9PznJiuenzpjkSogLxocaVY1xi5A",
+        "output_token_account": "D8U5NgF6AqZTZ5kdoRbeaPynCpqEFPFRRgUs52VB6Ymv",
+        "swap_output_amount": 44100361,
+        "settlement_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+      }
+    }
+  ],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "D8U5NgF6AqZTZ5kdoRbeaPynCpqEFPFRRgUs52VB6Ymv",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "8uqtWtm1Dfg3Q48yyaD3LMxTGY6GsTAb4SCBYg4w9JvS",
+      "decimals": 6,
+      "pre": 0,
+      "post": 44100361
+    },
+    {
+      "account": "GbNL3DXwEp1Q2KFWPhdNMpezpcGWUkJJ5EZvcCTucXCN",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "8uqtWtm1Dfg3Q48yyaD3LMxTGY6GsTAb4SCBYg4w9JvS",
+      "decimals": 9,
+      "pre": 625339143,
+      "post": 0
+    },
+    {
+      "account": "6wWVbLeHDVHvCCsLprB85jkbU1JhS9VezABT2ZZFJ5BB",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "6wWVbLeHDVHvCCsLprB85jkbU1JhS9VezABT2ZZFJ5BB",
+      "decimals": 9,
+      "pre": 3021274338188,
+      "post": 3021899677331
+    },
+    {
+      "account": "D5trkFE3C7QeyFATEWjEHyKXXXSGpggbP7V9SMWwVBkz",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "D5trkFE3C7QeyFATEWjEHyKXXXSGpggbP7V9SMWwVBkz",
+      "decimals": 6,
+      "pre": 272829496301,
+      "post": 272785395940
+    }
+  ]
+}

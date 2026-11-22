@@ -1,0 +1,46 @@
+{
+  "signature": "2ncPDBGnujDXVqeEnyhNkbWSgUpwK5XcLvSXH2eb3DS9C7FvTwtHHrCdxN1RKiYpcAK1gmKCQfFrRyDCP4WTW94u",
+  "slot": 403370744,
+  "block_time": 1772316738,
+  "fee_payer": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 2,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "upsert_mint_whitelist_v1",
+      "args": {
+        "mints": [
+          "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+          "USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB",
+          "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
+          "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
+        ]
+      },
+      "accounts": [
+        {
+          "name": "mint_whitelist",
+          "address": "E8R1dqUAhazSpQMjLCEXdC7M7BWgk1vdwaobazKavhoE"
+        },
+        {
+          "name": "signer",
+          "address": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "remaining_accounts": []
+    }
+  ],
+  "events": [],
+  "idl_management": [],
+  "token_balances": []
+}

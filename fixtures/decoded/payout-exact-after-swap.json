@@ -1,0 +1,144 @@
+{
+  "signature": "JoRSMWcbe4JXYvtBvpAKKmk4akTGGiKbW5akf8qE6d7j7CGCvRR9AjofkgFqDr3CGZ5VUBVb4CJknj7ksRiixQa",
+  "slot": 472584247,
+  "block_time": 1795359837,
+  "fee_payer": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 2,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "distribute_exact_after_just_swapping_v1",
+      "args": {
+        "transfers": [
+          {
+            "share_type": "Beneficiary",
+            "address": "Bq9AZB3QTaxJM1TymGGjuC2QUhUw4PL9hQrzo5bRRR48",
+            "amount": 128201171
+          },
+          {
+            "share_type": "Fee",
+            "address": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+            "amount": 32050293
+          }
+        ]
+      },
+      "accounts": [
+        {
+          "name": "epoch_tracker",
+          "address": "3aPcrURGJjmoTDyGXDU792cLV1RcdxiT4PNoKmuei4RS"
+        },
+        {
+          "name": "debouncer",
+          "address": "27pAKgXUXaLZT3tKaqXc6G1hMme4kVDE2wT5BkNrTHan"
+        },
+        {
+          "name": "distribution",
+          "address": "8dmEyWva3ZWTPrvC8zJCfqFtH8XYyzmuX4UeudbaUQaX"
+        },
+        {
+          "name": "swap_receipt",
+          "address": "8QLWSq55aZb2XxKG2eLGgpvLJ84vDjEhPL7v41JZtM1x"
+        },
+        {
+          "name": "output_distribution_token_account",
+          "address": "6yjTQ3gh5gTTrwJ5njYRgtXFVNnwFUnY5MWNgaPQtkvy"
+        },
+        {
+          "name": "output_mint",
+          "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        },
+        {
+          "name": "output_mint_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "signer",
+          "address": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "address": "ATdCx4f5ZitkcsW19w71SrV8YWNXhVezLB8X1QiNF9qw"
+        },
+        {
+          "name": "program",
+          "address": "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+        }
+      ],
+      "remaining_accounts": [
+        "CCXX2WFh1y7ydxhRijDXd3jhXq3sNcTp3xt3KGpDCfUM",
+        "B9kqFcBAkmZEVuycGaCGnHmMyTKAEUB2qRtW2NmzxZWg"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "position": {
+        "top": 2,
+        "inner": 3
+      },
+      "emitted_by": 0,
+      "name": "DonationEpochProcessedExactV1Event",
+      "fields": {
+        "daas_event_discriminator": "DonationEpochProcessedExactV1",
+        "config_id": "0x4f015a99ba46d4744bc6e8f51858db96db0e48ef2a54efa77c62ddce968d232d",
+        "mint": "So11111111111111111111111111111111111111112",
+        "epoch": 2,
+        "settled_amount": 160251464,
+        "settlement_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "transfers": [
+          {
+            "share_type": "Beneficiary",
+            "address": "Bq9AZB3QTaxJM1TymGGjuC2QUhUw4PL9hQrzo5bRRR48",
+            "amount": 128201171
+          },
+          {
+            "share_type": "Fee",
+            "address": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+            "amount": 32050293
+          }
+        ]
+      }
+    }
+  ],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "6yjTQ3gh5gTTrwJ5njYRgtXFVNnwFUnY5MWNgaPQtkvy",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "8dmEyWva3ZWTPrvC8zJCfqFtH8XYyzmuX4UeudbaUQaX",
+      "decimals": 6,
+      "pre": 160251464,
+      "post": 0
+    },
+    {
+      "account": "B9kqFcBAkmZEVuycGaCGnHmMyTKAEUB2qRtW2NmzxZWg",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+      "decimals": 6,
+      "pre": 40821746890,
+      "post": 40853797183
+    },
+    {
+      "account": "CCXX2WFh1y7ydxhRijDXd3jhXq3sNcTp3xt3KGpDCfUM",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "Bq9AZB3QTaxJM1TymGGjuC2QUhUw4PL9hQrzo5bRRR48",
+      "decimals": 6,
+      "pre": 164215296,
+      "post": 292416467
+    }
+  ]
+}

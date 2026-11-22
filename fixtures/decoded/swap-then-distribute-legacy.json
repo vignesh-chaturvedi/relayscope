@@ -1,0 +1,226 @@
+{
+  "signature": "5HEnomthyZQmLp8c873Znmd3WoSTa9zjd9mra7xhZypHC9GPZAtG8yNgoy1LYAJUwAJJ1mvmKjvsNHzZ13PzUt4n",
+  "slot": 406416756,
+  "block_time": 1773515397,
+  "fee_payer": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 3,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "swap_then_distribute_v1",
+      "args": {
+        "jupiter_swap_ix_data": "0xc1209b3341d69c8104010000005f0064000180c3c9010000000056bc270000000000640014",
+        "shares": [
+          {
+            "share_type": "Beneficiary",
+            "address": "7pfNKC9EW61FwJ4iLB4en82VuZM5T43YRGpK6yy81FyU",
+            "bps": 9700
+          },
+          {
+            "share_type": "Fee",
+            "address": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+            "bps": 300
+          }
+        ]
+      },
+      "accounts": [
+        {
+          "name": "epoch_tracker",
+          "address": "B3YaWE3sotE6pgThckdWVHY6nF9ERHU5iDGKwQBo2RRg"
+        },
+        {
+          "name": "debouncer",
+          "address": "Dt4pWrbmF6yAGmh4QHMC6Z9LMV2Ek2zFa2fXBtziwDHY"
+        },
+        {
+          "name": "distribution",
+          "address": "3wyr8BfniqPQ28u5r24nnHNWr2zVuL5mB6Bhxsi6ea8J"
+        },
+        {
+          "name": "distribution_token_account",
+          "address": "4veEDTqPLqgFW2JS1ZLqaiNG7DxTEW511AcYpibWEQEp"
+        },
+        {
+          "name": "output_distribution_token_account",
+          "address": "5k15WnAkcUwTZFCHDW2jL9voQx9e369cHrTsfecWKJM4"
+        },
+        {
+          "name": "mint",
+          "address": "So11111111111111111111111111111111111111112"
+        },
+        {
+          "name": "output_mint",
+          "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        },
+        {
+          "name": "output_mint_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "signer",
+          "address": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "jupiter_program",
+          "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "address": "ATdCx4f5ZitkcsW19w71SrV8YWNXhVezLB8X1QiNF9qw"
+        },
+        {
+          "name": "program",
+          "address": "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+        }
+      ],
+      "remaining_accounts": [
+        "8z32rhkw5DkgiB9ec8y5oTWQ33i5TqWvC2vdgfdUbo7d",
+        "B9kqFcBAkmZEVuycGaCGnHmMyTKAEUB2qRtW2NmzxZWg",
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "4xDsmeTWPNjgSVSS1VTfzFq3iHZhp77ffPkAmkZkdu71",
+        "3wyr8BfniqPQ28u5r24nnHNWr2zVuL5mB6Bhxsi6ea8J",
+        "4veEDTqPLqgFW2JS1ZLqaiNG7DxTEW511AcYpibWEQEp",
+        "6zAcFYmxkaH25qWZW5ek4dk4SyQNpSza3ydSoUxjTudD",
+        "m3BrPbv2TFmZZTPpyB9NgsCXqGNujpXvzvGqj8ksars",
+        "5k15WnAkcUwTZFCHDW2jL9voQx9e369cHrTsfecWKJM4",
+        "So11111111111111111111111111111111111111112",
+        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "J5a4BoK4DWxGAWxKVgfdJBhhd2R6KHyd36niYRbC8dVt",
+        "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+        "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        "SV2EYYJyRz2YhfXwXnhNAevDEui5Q6yrfyo13WtupPF",
+        "4xDsmeTWPNjgSVSS1VTfzFq3iHZhp77ffPkAmkZkdu71",
+        "AZEKRYWew6zAyoksytTeBFJRHyYdwycPMBn1P2QgfDpQ",
+        "2b8p8ZUcXRV3GQhc2j5pSAaQXpaa4ML6r7pCN9NoBGgi",
+        "FmxXDSR9WvpJTCh738D1LEDuhMoA8geCtZgHb3isy7Dp",
+        "LNgaY8wE76tVikn1fyexrxgr2D4CAKy1LLhCE3B2ZWp",
+        "6f2DF6HTxPwohXqXeQvYYspMYvaytfY67XeJRWfpQMsM",
+        "6zAcFYmxkaH25qWZW5ek4dk4SyQNpSza3ydSoUxjTudD",
+        "m3BrPbv2TFmZZTPpyB9NgsCXqGNujpXvzvGqj8ksars",
+        "So11111111111111111111111111111111111111112",
+        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "Sysvar1nstructions1111111111111111111111111"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "position": {
+        "top": 3,
+        "inner": 18
+      },
+      "emitted_by": 0,
+      "name": "DonationEpochProcessedV1Event",
+      "fields": {
+        "daas_event_discriminator": "DonationEpochProcessedV1",
+        "config_id": "0xb33b801552c08b5d6cf28b5af23961e6c44ae3bf900b403c87614561580c9008",
+        "mint": "So11111111111111111111111111111111111111112",
+        "epoch": 0,
+        "settled_amount": 2603508,
+        "settlement_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "transfers": [
+          {
+            "share_type": "Beneficiary",
+            "address": "7pfNKC9EW61FwJ4iLB4en82VuZM5T43YRGpK6yy81FyU",
+            "amount": 2525403,
+            "bps": 9700
+          },
+          {
+            "share_type": "Fee",
+            "address": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+            "amount": 78105,
+            "bps": 300
+          }
+        ]
+      }
+    }
+  ],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "4veEDTqPLqgFW2JS1ZLqaiNG7DxTEW511AcYpibWEQEp",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "3wyr8BfniqPQ28u5r24nnHNWr2zVuL5mB6Bhxsi6ea8J",
+      "decimals": 9,
+      "pre": 30000000,
+      "post": 0
+    },
+    {
+      "account": "6zAcFYmxkaH25qWZW5ek4dk4SyQNpSza3ydSoUxjTudD",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "4xDsmeTWPNjgSVSS1VTfzFq3iHZhp77ffPkAmkZkdu71",
+      "decimals": 9,
+      "pre": 1,
+      "post": 1
+    },
+    {
+      "account": "8z32rhkw5DkgiB9ec8y5oTWQ33i5TqWvC2vdgfdUbo7d",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "7pfNKC9EW61FwJ4iLB4en82VuZM5T43YRGpK6yy81FyU",
+      "decimals": 6,
+      "pre": 0,
+      "post": 2525403
+    },
+    {
+      "account": "B9kqFcBAkmZEVuycGaCGnHmMyTKAEUB2qRtW2NmzxZWg",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+      "decimals": 6,
+      "pre": 15105300,
+      "post": 15183405
+    },
+    {
+      "account": "J5a4BoK4DWxGAWxKVgfdJBhhd2R6KHyd36niYRbC8dVt",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "45ruCyfdRkWpRNGEqWzjCiXRHkZs8WXCLQ67Pnpye7Hp",
+      "decimals": 9,
+      "pre": 2289413,
+      "post": 2349413
+    },
+    {
+      "account": "m3BrPbv2TFmZZTPpyB9NgsCXqGNujpXvzvGqj8ksars",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "4xDsmeTWPNjgSVSS1VTfzFq3iHZhp77ffPkAmkZkdu71",
+      "decimals": 6,
+      "pre": 0,
+      "post": 0
+    },
+    {
+      "account": "6f2DF6HTxPwohXqXeQvYYspMYvaytfY67XeJRWfpQMsM",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "AZEKRYWew6zAyoksytTeBFJRHyYdwycPMBn1P2QgfDpQ",
+      "decimals": 6,
+      "pre": 68414631732,
+      "post": 68412028224
+    },
+    {
+      "account": "LNgaY8wE76tVikn1fyexrxgr2D4CAKy1LLhCE3B2ZWp",
+      "mint": "So11111111111111111111111111111111111111112",
+      "owner": "AZEKRYWew6zAyoksytTeBFJRHyYdwycPMBn1P2QgfDpQ",
+      "decimals": 9,
+      "pre": 1528986094836,
+      "post": 1529016034836
+    }
+  ]
+}

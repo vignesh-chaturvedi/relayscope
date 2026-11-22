@@ -1,0 +1,146 @@
+{
+  "signature": "54xLZkzi56LfDah6JdZQRBXSggGgTxaRsgYsrtzm3rqkQczA5gicT1K12TXDPfWy57w3yEtEQ5Bh5dBUdYU4iprN",
+  "slot": 462471164,
+  "block_time": 1793189396,
+  "fee_payer": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 2,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "distribute_after_just_swapping_v1",
+      "args": {
+        "shares": [
+          {
+            "share_type": "Beneficiary",
+            "address": "Df8X3LhkE5bX4mnukpBc2Yjbj7xJYh2B7VQioJA58HBA",
+            "bps": 8000
+          },
+          {
+            "share_type": "Fee",
+            "address": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+            "bps": 2000
+          }
+        ]
+      },
+      "accounts": [
+        {
+          "name": "epoch_tracker",
+          "address": "5oYAiBDXvYSjSHCVzUGu2VowXuFnDYaDdfoNL66Wkktq"
+        },
+        {
+          "name": "debouncer",
+          "address": "6RgoF71YoeFEkxPfNsyD2jvDBiNYPsf8n9N9iKjQai6L"
+        },
+        {
+          "name": "distribution",
+          "address": "FoMV1UsYGejrdpS9G1F4tktAJZ1gVUYWxXJk1VK7kkAy"
+        },
+        {
+          "name": "swap_receipt",
+          "address": "DnYWxcBs7HfNLoxKKu2qabFaMzGqbQ2thAYFjzEvya8s"
+        },
+        {
+          "name": "output_distribution_token_account",
+          "address": "FVWWcihoJ5UrXSrd6EGA86e39P4wEHdMc2TPuD7NfTpy"
+        },
+        {
+          "name": "output_mint",
+          "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        },
+        {
+          "name": "output_mint_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "signer",
+          "address": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "address": "ATdCx4f5ZitkcsW19w71SrV8YWNXhVezLB8X1QiNF9qw"
+        },
+        {
+          "name": "program",
+          "address": "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+        }
+      ],
+      "remaining_accounts": [
+        "CHmejgik4qaXncRdLHHkqpRdXPKf6nidkAZ5Xq62UkFi",
+        "B9kqFcBAkmZEVuycGaCGnHmMyTKAEUB2qRtW2NmzxZWg"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "position": {
+        "top": 2,
+        "inner": 3
+      },
+      "emitted_by": 0,
+      "name": "DonationEpochProcessedV1Event",
+      "fields": {
+        "daas_event_discriminator": "DonationEpochProcessedV1",
+        "config_id": "0xe033029d62f19578593913896ef381f5dc373f05c82aad709b73f286e7670027",
+        "mint": "So11111111111111111111111111111111111111112",
+        "epoch": 0,
+        "settled_amount": 6531263,
+        "settlement_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "transfers": [
+          {
+            "share_type": "Beneficiary",
+            "address": "Df8X3LhkE5bX4mnukpBc2Yjbj7xJYh2B7VQioJA58HBA",
+            "amount": 5225010,
+            "bps": 8000
+          },
+          {
+            "share_type": "Fee",
+            "address": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+            "amount": 1306253,
+            "bps": 2000
+          }
+        ]
+      }
+    }
+  ],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "B9kqFcBAkmZEVuycGaCGnHmMyTKAEUB2qRtW2NmzxZWg",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "FdYJBxNVcKwa5JmoCxV8T1c7gGXaERrKLYxxkXFwnR2M",
+      "decimals": 6,
+      "pre": 564822046972,
+      "post": 564823353225
+    },
+    {
+      "account": "CHmejgik4qaXncRdLHHkqpRdXPKf6nidkAZ5Xq62UkFi",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "Df8X3LhkE5bX4mnukpBc2Yjbj7xJYh2B7VQioJA58HBA",
+      "decimals": 6,
+      "pre": 62262197,
+      "post": 67487207
+    },
+    {
+      "account": "FVWWcihoJ5UrXSrd6EGA86e39P4wEHdMc2TPuD7NfTpy",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "FoMV1UsYGejrdpS9G1F4tktAJZ1gVUYWxXJk1VK7kkAy",
+      "decimals": 6,
+      "pre": 6531263,
+      "post": 0
+    }
+  ]
+}

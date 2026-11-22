@@ -1,0 +1,127 @@
+{
+  "signature": "3kaNyErbCuBLgsPxtSqU6gbKV7JY7cPqPJgoMg2BQ4hBj7ETwueM5MM9kMQx78QWGCuTTNpSKiytjb9y27LVAoGb",
+  "slot": 463024418,
+  "block_time": 1793307594,
+  "fee_payer": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc",
+  "succeeded": true,
+  "program_error": null,
+  "instructions": [
+    {
+      "position": {
+        "top": 0,
+        "inner": null
+      },
+      "stack_height": 1,
+      "invoked_by": null,
+      "name": "admit_bridge_payment_v1",
+      "args": {
+        "source_id": "0xa2fd4e4a0e427290b718c9cf42af3be6c8b5718e6b0dd986852afbc3ffad3fa3",
+        "source_commitment": "0x9d6e2335a9ba04a5525df84156a61602db85fb9e95a92d9ede727739b67555e1",
+        "payment_id": "0x508bc1e4a96632301d7876c1a80ca93bc52acf69ffb4ab3eff147dca82ff2771",
+        "config_id": "0xb02173170bada3eb8162396b27744f9c5ac99bed3a632b1c4d2bc9b1b366b0e8",
+        "amount": 932111,
+        "minimum_amount": 904456,
+        "tip_bps": 0
+      },
+      "accounts": [
+        {
+          "name": "source_marker",
+          "address": "CtwJjrJnmYvHmuDUXsv9wPSwsKcjuVas8MwBFMGhvPmn"
+        },
+        {
+          "name": "payment_marker",
+          "address": "2U2LWpYr9V1UdRw8ueW4K4wZcZi8EJ2U8zEdYxA9yKDn"
+        },
+        {
+          "name": "receiver",
+          "address": "AJFF3kUi2RbbJDAcXDDozVUfY9oFkhux6s87o1ivE2J6"
+        },
+        {
+          "name": "receiver_token_account",
+          "address": "BNtt8czGm4yB3D7agHUFuH94MGRhiWQX6srJn8dhFCLn"
+        },
+        {
+          "name": "epoch_tracker",
+          "address": "31J6jejS5ftDuf1skjhRAvHtih8uWCSfUvv2oxQU7nwZ"
+        },
+        {
+          "name": "debouncer",
+          "address": "E364QGDYQiL2EKsBQMyhNM3zMMzHEnDHPWLBD4okm45i"
+        },
+        {
+          "name": "debouncer_token_account",
+          "address": "HDDoFFpzBGdwAxu8Pjwh7SsUCB3BJ7fpFegAEC3Fw2Uc"
+        },
+        {
+          "name": "mint",
+          "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        },
+        {
+          "name": "signer",
+          "address": "RLYRf96HAJSbbXCNS6ibQYnkxtb6kbfuFxqEkm9oQUc"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "address": "ATdCx4f5ZitkcsW19w71SrV8YWNXhVezLB8X1QiNF9qw"
+        },
+        {
+          "name": "program",
+          "address": "RLAYHr9TRFcKB2ubYQhspcnXiaGpaVzNQvHytt47RZu"
+        }
+      ],
+      "remaining_accounts": []
+    }
+  ],
+  "events": [
+    {
+      "position": {
+        "top": 0,
+        "inner": 3
+      },
+      "emitted_by": 0,
+      "name": "BridgeDonationAdmittedV1Event",
+      "fields": {
+        "daas_event_discriminator": "BridgeDonationAdmittedV1",
+        "source_id": "0xa2fd4e4a0e427290b718c9cf42af3be6c8b5718e6b0dd986852afbc3ffad3fa3",
+        "source_commitment": "0x9d6e2335a9ba04a5525df84156a61602db85fb9e95a92d9ede727739b67555e1",
+        "payment_id": "0x508bc1e4a96632301d7876c1a80ca93bc52acf69ffb4ab3eff147dca82ff2771",
+        "config_id": "0xb02173170bada3eb8162396b27744f9c5ac99bed3a632b1c4d2bc9b1b366b0e8",
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "epoch": 1,
+        "gross_amount": 932111,
+        "tip": 0
+      }
+    }
+  ],
+  "idl_management": [],
+  "token_balances": [
+    {
+      "account": "BNtt8czGm4yB3D7agHUFuH94MGRhiWQX6srJn8dhFCLn",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "AJFF3kUi2RbbJDAcXDDozVUfY9oFkhux6s87o1ivE2J6",
+      "decimals": 6,
+      "pre": 932111,
+      "post": 0
+    },
+    {
+      "account": "HDDoFFpzBGdwAxu8Pjwh7SsUCB3BJ7fpFegAEC3Fw2Uc",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "E364QGDYQiL2EKsBQMyhNM3zMMzHEnDHPWLBD4okm45i",
+      "decimals": 6,
+      "pre": 0,
+      "post": 932111
+    }
+  ]
+}
