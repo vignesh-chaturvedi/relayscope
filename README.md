@@ -6,7 +6,7 @@ Relayscope follows every donation from the donor's transaction to the payout, ch
 
 An independent, unofficial project.
 
-**Status:** phases 1 and 2 of 7 are done: a decoder for every instruction, event and account in the program, and the program's full history indexed into SQLite (243,023 transactions, 0 decode failures). See the [build plan](docs/BUILD_PLAN.md).
+**Status:** phases 1 to 3 of 7 are done: a decoder for every instruction, event and account in the program, its full history indexed into SQLite (243,023 transactions, 0 decode failures), and every epoch reconciled (49,159 epochs, 0 failed checks). See the [build plan](docs/BUILD_PLAN.md) and the [methodology](docs/METHODOLOGY.md).
 
 ## Try the decoder
 
@@ -38,6 +38,15 @@ cargo run --release -p relayscope -- stats
 # After a decoder change, rebuild every table from the stored raw transactions, without refetching
 cargo run --release -p relayscope -- reindex
 ```
+
+## Reconcile every epoch
+
+```bash
+# Run checks C1 to C8 on every epoch, store the results in the checks table and print a report
+cargo run --release -p relayscope -- verify
+```
+
+The checks are plain arithmetic over on-chain data: donations add up to each closed epoch, every swap delivered what it reported, every payout adds up and arrived with its recipients, the fee is a known rate, and tips were paid. [METHODOLOGY.md](docs/METHODOLOGY.md) gives each rule and what the full history showed.
 
 The backfill needs an RPC endpoint that keeps full history. Solana's public endpoint does, but it throttles hard: a trial settled at about 0.3 transactions a second, more than nine days for the program's history. With an archival endpoint, set `RELAYSCOPE_RPC_URL` and raise `--rps` and `--concurrency`. The client slows itself down whenever it is rate limited, so a too-high `--rps` costs time, not correctness.
 

@@ -133,8 +133,8 @@ Checks run only on finalized data. Each one stores its expected and actual value
 | C2 | Swap output | `swap_output_amount` in the swap event equals the settlement-mint balance increase of the output token account in the same transaction. |
 | C3 | Settlement total | `settled_amount` equals the sum of transfer amounts. It also equals `swap_output_amount` when the epoch was swapped, or `gross_epoch_amount` when it was not. |
 | C4 | Transfers landed | Every transfer in the payout event matches a token balance increase of that amount for that address in the same transaction. |
-| C5 | Fee rate | The effective fee is `Fee / settled` in basis points, compared with the config's stored fee. Shown as information until Phase 3 confirms how fees and tips interact across the full history, and only then promoted to a check. |
-| C6 | Tip | Tips declared by donors match `Tip` transfers, pro rata to the swap when the epoch was swapped. Same promotion rule as C5. |
+| C5 | Fee rate | The fee is one known rate applied to the whole epoch, within one unit of rounding per donation, or a split of the epoch's donations between two known rates that reproduces it. Phase 3 settled the rule from the history; comparing with each config's stored fee waits for the API labels in Phase 5. |
+| C6 | Tip | Tips declared by donors match `Tip` lines, in proportion to the settled amount, within one unit per donation. |
 | C7 | Pending time | Time from each donation to its epoch's payout. Open epochs older than a threshold are listed with their age and gross value. Very small epochs can wait by design, because the relayer batches until an epoch is worth at least 1 USDC. |
 | C8 | Completeness | For every closed time window, the set of indexed signatures equals the set RPC returns for the program. |
 
@@ -208,6 +208,8 @@ What the phase decided:
 - Settle the fee and tip rules from the data, then decide whether C5 and C6 become checks.
 - **Done when:** every finalized epoch in history has a result for every check, and no failure is unexplained.
 - **Commit:** `Reconcile every closed epoch`
+
+**Status: done** on 23 November 2026. Every check ran on all 49,159 epochs and none failed: all 48,716 closed epochs add up, all 48,263 swaps delivered what they reported, and all 48,715 payouts add up and landed with their recipients. C5 and C6 became checks. Every paid epoch was charged a single known rate (3%, 5%, 10%, 15% or 20%), except 27 that span a rate change; for each of those, Relayscope found the split of donations between two known rates that reproduces the fee. One epoch has been closed and unpaid since 29 July 2026, and 443 small epochs are open. The details, with signatures, are in [`METHODOLOGY.md`](METHODOLOGY.md).
 
 ### Phase 4: live ingestion
 

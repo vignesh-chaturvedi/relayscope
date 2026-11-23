@@ -3,6 +3,7 @@ mod idl;
 mod rpc;
 mod stats;
 mod store;
+mod verify;
 
 use std::path::PathBuf;
 
@@ -65,6 +66,13 @@ enum Command {
         /// Also list up to this many decode failures.
         #[arg(long, default_value_t = 10)]
         failures: usize,
+    },
+    /// Run every reconciliation check on every epoch, store the results in the `checks` table
+    /// and print a report. Exits with 1 if any check fails.
+    Verify {
+        /// Failures to list.
+        #[arg(long, default_value_t = 50)]
+        show: usize,
     },
     /// Re-decode stored transactions with the current decoder, without fetching.
     Reindex {
@@ -170,6 +178,13 @@ async fn main() -> Result<()> {
                 for (signature, error) in listed {
                     println!("  {signature}: {error}");
                 }
+            }
+        }
+        Command::Verify { show } => {
+            let mut store = Store::open(&cli.db)?;
+            let report = verify::run(&mut store, show)?;
+            if report.failures > 0 {
+                std::process::exit(1);
             }
         }
         Command::Reindex { failed_only } => {

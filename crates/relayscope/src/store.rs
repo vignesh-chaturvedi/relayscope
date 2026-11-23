@@ -9,6 +9,10 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use anyhow::{Context, Result, anyhow};
+use relayscope_core::reconcile::{
+    CheckResult, CloseRow, DonationRow, EpochData, LineRow, PayoutRow, SwapRow,
+};
+use relayscope_core::types::ShareType;
 use relayscope_core::{DecodedTx, Event};
 use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
@@ -207,6 +211,22 @@ const MIGRATIONS: &[&str] = &[
         value TEXT NOT NULL
     ) WITHOUT ROWID;
     "#,
+    // 2: reconciliation results
+    r#"
+    CREATE TABLE checks (
+        config_id  TEXT NOT NULL,
+        mint       TEXT NOT NULL,
+        epoch      INTEGER NOT NULL,
+        check_id   TEXT NOT NULL,
+        outcome    TEXT NOT NULL,
+        expected   TEXT,
+        actual     TEXT,
+        detail     TEXT NOT NULL,
+        checked_at INTEGER NOT NULL,
+        PRIMARY KEY (config_id, mint, epoch, check_id)
+    ) WITHOUT ROWID;
+    CREATE INDEX checks_outcome ON checks (check_id, outcome);
+    "#,
 ];
 
 /// Tables holding what a transaction decoded to, cleared before it is rewritten.
@@ -401,6 +421,15 @@ impl Store {
         tx.commit()?;
         Ok(report)
     }
+}
+
+/// What C8 needs to know about the signature queue.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Completeness {
+    pub history_complete: bool,
+    pub listed: u64,
+    pub queued: u64,
+    pub decode_failures: u64,
 }
 
 /// A transaction fetched from RPC, and its decoding result.
@@ -843,6 +872,182 @@ impl Store {
         Ok(s)
     }
 
+    /// Everything recorded for every epoch, from the stored rows, ready for reconciliation.
+    pub fn load_epochs(&self) -> Result<Vec<EpochData>> {
+        type Key = (String, String, i64);
+        let c = &self.conn;
+        let mut epochs: BTreeMap<Key, EpochData> = BTreeMap::new();
+        fn entry(map: &mut BTreeMap<Key, EpochData>, key: Key) -> &mut EpochData {
+            map.entry(key.clone()).or_insert_with(|| EpochData {
+                config_id: key.0,
+                mint: key.1,
+                epoch: u128::try_from(key.2).unwrap_or_default(),
+                ..EpochData::default()
+            })
+        }
+        let amount = |v: i64| u64::try_from(v).unwrap_or_default();
+
+        let mut stmt = c.prepare(
+            "SELECT config_id, mint, epoch, signature, gross_amount, tip, block_time FROM donations",
+        )?;
+        let mut rows = stmt.query([])?;
+        while let Some(r) = rows.next()? {
+            entry(&mut epochs, (r.get(0)?, r.get(1)?, r.get(2)?))
+                .donations
+                .push(DonationRow {
+                    signature: r.get(3)?,
+                    gross: amount(r.get(4)?),
+                    tip: amount(r.get(5)?),
+                    block_time: r.get(6)?,
+                });
+        }
+
+        let mut stmt = c.prepare(
+            "SELECT config_id, mint, epoch, signature, gross_epoch_amount, block_time FROM epoch_closes",
+        )?;
+        let mut rows = stmt.query([])?;
+        while let Some(r) = rows.next()? {
+            entry(&mut epochs, (r.get(0)?, r.get(1)?, r.get(2)?))
+                .closes
+                .push(CloseRow {
+                    signature: r.get(3)?,
+                    gross_epoch: amount(r.get(4)?),
+                    block_time: r.get(5)?,
+                });
+        }
+
+        let mut stmt = c.prepare(
+            "SELECT s.config_id, s.mint, s.epoch, s.signature, s.swap_output_amount, t.post - t.pre, s.block_time
+             FROM epoch_swaps s
+             LEFT JOIN token_changes t ON t.signature = s.signature AND t.account = s.output_token_account",
+        )?;
+        let mut rows = stmt.query([])?;
+        while let Some(r) = rows.next()? {
+            entry(&mut epochs, (r.get(0)?, r.get(1)?, r.get(2)?))
+                .swaps
+                .push(SwapRow {
+                    signature: r.get(3)?,
+                    output: amount(r.get(4)?),
+                    output_received: r.get::<_, Option<i64>>(5)?.map(i128::from),
+                    block_time: r.get(6)?,
+                });
+        }
+
+        // Payout lines, and what each owner received in the settlement mint, per payout transaction.
+        let mut lines: BTreeMap<(String, i64), Vec<LineRow>> = BTreeMap::new();
+        let mut stmt = c.prepare(
+            "SELECT signature, ordinal, share_type, address, amount, bps FROM payout_lines
+             ORDER BY signature, ordinal, line",
+        )?;
+        let mut rows = stmt.query([])?;
+        while let Some(r) = rows.next()? {
+            let share_type = match r.get::<_, String>(2)?.as_str() {
+                "Beneficiary" => ShareType::Beneficiary,
+                "Fee" => ShareType::Fee,
+                "Tip" => ShareType::Tip,
+                other => return Err(anyhow!("unknown share type {other}")),
+            };
+            lines
+                .entry((r.get(0)?, r.get(1)?))
+                .or_default()
+                .push(LineRow {
+                    share_type,
+                    address: r.get(3)?,
+                    amount: amount(r.get(4)?),
+                    bps: r.get::<_, Option<u16>>(5)?,
+                });
+        }
+        let mut received: BTreeMap<String, BTreeMap<String, i128>> = BTreeMap::new();
+        let mut stmt = c.prepare(
+            "SELECT t.signature, t.owner, SUM(t.post - t.pre) FROM token_changes t
+             JOIN (SELECT DISTINCT signature, settlement_mint FROM epoch_payouts) p
+               ON p.signature = t.signature AND p.settlement_mint = t.mint
+             WHERE t.owner IS NOT NULL
+             GROUP BY t.signature, t.owner",
+        )?;
+        let mut rows = stmt.query([])?;
+        while let Some(r) = rows.next()? {
+            received
+                .entry(r.get(0)?)
+                .or_default()
+                .insert(r.get(1)?, i128::from(r.get::<_, i64>(2)?));
+        }
+
+        let mut stmt = c.prepare(
+            "SELECT config_id, mint, epoch, signature, ordinal, generation, instruction, settled_amount,
+                    settlement_mint, block_time
+             FROM epoch_payouts",
+        )?;
+        let mut rows = stmt.query([])?;
+        while let Some(r) = rows.next()? {
+            let signature: String = r.get(3)?;
+            let ordinal: i64 = r.get(4)?;
+            entry(&mut epochs, (r.get(0)?, r.get(1)?, r.get(2)?))
+                .payouts
+                .push(PayoutRow {
+                    instruction: r.get::<_, Option<String>>(6)?.unwrap_or_default(),
+                    exact: r.get::<_, String>(5)? == "exact",
+                    settled: amount(r.get(7)?),
+                    settlement_mint: r.get(8)?,
+                    lines: lines
+                        .remove(&(signature.clone(), ordinal))
+                        .unwrap_or_default(),
+                    received: received.get(&signature).cloned().unwrap_or_default(),
+                    block_time: r.get(9)?,
+                    signature,
+                });
+        }
+        Ok(epochs.into_values().collect())
+    }
+
+    /// Replaces every stored check result.
+    pub fn write_checks(&mut self, results: &[(&EpochData, Vec<CheckResult>)]) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        tx.execute("DELETE FROM checks", [])?;
+        {
+            let mut stmt = tx.prepare_cached(
+                "INSERT INTO checks (config_id, mint, epoch, check_id, outcome, expected, actual, detail, checked_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            )?;
+            let at = now();
+            for (epoch, checks) in results {
+                let epoch_number = i64::try_from(epoch.epoch).unwrap_or(i64::MAX);
+                for r in checks {
+                    stmt.execute(params![
+                        epoch.config_id,
+                        epoch.mint,
+                        epoch_number,
+                        r.check.id(),
+                        r.outcome.as_str(),
+                        r.expected,
+                        r.actual,
+                        r.detail,
+                        at
+                    ])?;
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// For C8: whether listing reached the program's first transaction, and how many listed
+    /// signatures are still queued or were rejected by the decoder.
+    pub fn completeness(&self) -> Result<Completeness> {
+        let c = &self.conn;
+        Ok(Completeness {
+            history_complete: self.state("history_complete")?.is_some(),
+            listed: c.query_row("SELECT COUNT(*) FROM signatures", [], |r| r.get(0))?,
+            queued: c.query_row(
+                "SELECT COUNT(*) FROM signatures WHERE status = ?1",
+                [UNFETCHED],
+                |r| r.get(0),
+            )?,
+            decode_failures: c
+                .query_row("SELECT COUNT(*) FROM decode_failures", [], |r| r.get(0))?,
+        })
+    }
+
     /// Decode failures, newest first.
     pub fn decode_failures(&self, limit: usize) -> Result<Vec<(String, String)>> {
         let mut stmt = self.conn.prepare(
@@ -1141,6 +1346,67 @@ mod tests {
             )
             .unwrap();
         assert_eq!(n, 2);
+    }
+
+    #[test]
+    fn real_fixtures_reconcile_through_the_loader() {
+        use relayscope_core::reconcile::{Check, Outcome, reconcile};
+        let mut store = Store::open_in_memory().unwrap();
+        load_all(&mut store);
+        let epochs = store.load_epochs().unwrap();
+        let find = |config: &str, epoch: u128| {
+            epochs
+                .iter()
+                .find(|e| e.config_id.starts_with(config) && e.epoch == epoch)
+                .unwrap()
+        };
+        let outcome = |e: &EpochData, check: Check| {
+            reconcile(e, 1_800_000_000)
+                .into_iter()
+                .find(|r| r.check == check)
+                .unwrap()
+        };
+
+        // The bridged USDC epoch: admission, close and payout are fixtures, but only one of
+        // its two donations is. The inflow check sees the gap and gives the numbers.
+        let bridged = find("0xb021", 1);
+        assert_eq!(outcome(bridged, Check::Settlement).outcome, Outcome::Pass);
+        assert_eq!(outcome(bridged, Check::Landed).outcome, Outcome::Pass);
+        let inflow = outcome(bridged, Check::Inflow);
+        assert_eq!(inflow.outcome, Outcome::Fail);
+        assert_eq!(
+            (inflow.expected.as_deref(), inflow.actual.as_deref()),
+            (Some("932111"), Some("1860005"))
+        );
+        // With the other donation (1,860,005 - 932,111 = 927,894), the epoch adds up, and its
+        // fee is 3% with one unit of rounding per donation: 55,799 against 55,800.15.
+        let mut whole = bridged.clone();
+        whole
+            .donations
+            .push(relayscope_core::reconcile::DonationRow {
+                signature: "second bridged donation".into(),
+                gross: 927_894,
+                tip: 0,
+                block_time: whole.donations[0].block_time,
+            });
+        assert_eq!(outcome(&whole, Check::Inflow).outcome, Outcome::Pass);
+        assert_eq!(outcome(&whole, Check::FeeRate).detail, "300 bps");
+
+        // The 20% SOL epoch: its payout landed, but its swap is not a fixture, so it fails C3.
+        let swapped = find("0x4f01", 2);
+        assert_eq!(outcome(swapped, Check::Landed).outcome, Outcome::Pass);
+        assert_eq!(outcome(swapped, Check::Settlement).outcome, Outcome::Fail);
+
+        let results: Vec<_> = epochs
+            .iter()
+            .map(|e| (e, reconcile(e, 1_800_000_000)))
+            .collect();
+        store.write_checks(&results).unwrap();
+        let stored: u64 = store
+            .conn
+            .query_row("SELECT COUNT(*) FROM checks", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(stored, epochs.len() as u64 * 7);
     }
 
     #[test]

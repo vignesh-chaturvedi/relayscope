@@ -23,6 +23,7 @@ pub mod instructions;
 pub mod pda;
 pub mod program;
 pub mod pubkey;
+pub mod reconcile;
 pub mod shape;
 pub mod tx;
 pub mod types;
