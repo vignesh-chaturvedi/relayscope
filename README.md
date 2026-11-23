@@ -6,7 +6,7 @@ Relayscope follows every donation from the donor's transaction to the payout, ch
 
 An independent, unofficial project.
 
-**Status:** phases 1 to 4 of 7 are done: a decoder for every instruction, event and account in the program, its full history indexed into SQLite (243,023 transactions, 0 decode failures), every epoch reconciled (49,159 epochs, 0 failed checks), and live following with a recorded kill test. See the [build plan](docs/BUILD_PLAN.md) and the [methodology](docs/METHODOLOGY.md).
+**Status:** phases 1 to 5 of 7 are done: a decoder for every instruction, event and account in the program, its full history indexed into SQLite (243,023 transactions, 0 decode failures), every epoch reconciled (49,159 epochs, 0 failed checks), live following with a recorded kill test, and a web app with a receipt for every donation. See the [build plan](docs/BUILD_PLAN.md) and the [methodology](docs/METHODOLOGY.md).
 
 ## Try the decoder
 
@@ -55,6 +55,24 @@ cargo run --release -p relayscope -- live --kill-test --offline 300
 `--source gapless` uses Solami's Yellowstone gRPC stream through gapless instead, which needs a Solami plan with gRPC access.
 
 In the first [kill test](docs/kill-tests/2026-11-23-websocket.md), the WebSocket was down for 24 minutes while 5 transactions landed. All 5 were recovered and nothing was missing. Live transactions reached the store about 1 second after their block.
+
+## Run the web app
+
+```bash
+# Build the web app once
+cd web && npm install && npm run build && cd ..
+
+# Serve the API, the live feed and the web app on http://127.0.0.1:8790
+cargo run --release -p relayscope -- serve
+```
+
+Run `relayscope live` beside it to keep the database current. Pages:
+
+- **Overview** `/`: totals, the latest donations with new ones arriving live, and check status.
+- **Receipt** `/tx/:signature`: a donation's journey from donated to pooled, closed, swapped and paid out, with each payout line, the donation's share of it, and the epoch's checks.
+- **Epoch, config and address** pages, and **Checks** `/checks`, which explains what each check proves.
+
+The JSON API is under `/api/v1` (`overview`, `tx/:signature`, `epoch/:config/:mint/:epoch`, `config/:id`, `address/:address`, `search?q=`, `checks`), and `/api/v1/stream` sends new donations as server-sent events. Beneficiary names come from the operator's public API when `RELAYSCOPE_LABELS_URL` is set, and are always marked as labels rather than proof.
 
 ## Reconcile every epoch
 

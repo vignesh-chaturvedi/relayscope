@@ -1,7 +1,10 @@
+mod api;
 mod backfill;
 mod idl;
+mod known;
 mod live;
 mod rpc;
+mod server;
 mod stats;
 mod store;
 mod verify;
@@ -106,6 +109,17 @@ enum Command {
         settle: u64,
         #[arg(long, default_value = "data/kill-tests")]
         report_dir: PathBuf,
+    },
+    /// Serve the JSON API, a live feed of new donations and the web app.
+    Serve {
+        #[arg(long, default_value = "127.0.0.1:8790")]
+        listen: std::net::SocketAddr,
+        /// The built web app.
+        #[arg(long, default_value = "web/dist")]
+        web: PathBuf,
+        /// Base URL of the operator's public API, for beneficiary names. Unset turns labels off.
+        #[arg(long, env = "RELAYSCOPE_LABELS_URL")]
+        labels_url: Option<String>,
     },
     /// Counts and totals from the database.
     Stats {
@@ -272,6 +286,21 @@ async fn main() -> Result<()> {
             if !passed {
                 std::process::exit(1);
             }
+        }
+        Command::Serve {
+            listen,
+            web,
+            labels_url,
+        } => {
+            // Apply any pending migrations before serving read-only.
+            drop(Store::open(&cli.db)?);
+            server::run(server::ServeOptions {
+                listen,
+                db: cli.db.clone(),
+                web,
+                labels_url,
+            })
+            .await?;
         }
         Command::Stats { failures } => {
             let store = Store::open(&cli.db)?;

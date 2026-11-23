@@ -226,16 +226,19 @@ What the phase decided:
 
 - REST API under `/api/v1`: overview, donation by signature, epoch, config, address search, checks.
 - Live feed over server-sent events at `/api/v1/stream`, with an optional config filter.
-- Labels from the operator's public endpoints (`GET /v1/configs/{configId}` and charity lookups), cached and rate limited. Relayscope works when the API is down. Pages then show addresses without names.
+- Labels from the operator's public config endpoint, cached for a day. The base URL is a local setting (`RELAYSCOPE_LABELS_URL`), and labels are off without it. Pages never wait for the API: they show cached names, and the browser asks for missing ones separately. Relayscope works when the API is down; pages then show addresses without names.
 - Web pages:
   - **Overview:** live feed, totals per mint, settled USDC, open epochs, check status.
   - **Receipt** `/tx/:signature`: the journey from donation to close to swap to payout, with amounts, explorer links and the checks that cover it.
   - **Epoch** `/epoch/:config/:mint/:epoch`: every donation in the epoch and every check.
-  - **Config** `/config/:id`: beneficiaries, epochs, totals, effective fee.
+  - **Config** `/config/:id`: beneficiaries, epochs, totals.
+  - **Address** `/address/:address`: donations made from or credited to it, and payout lines paid to it.
   - **Methodology** `/checks`: every check and its formula.
 - Works on phones, with light and dark themes.
 - **Done when:** any donation signature from mainnet opens a complete receipt page, with server time under 300 ms.
 - **Commit:** `Serve receipts, epochs and configs over HTTP and the web`
+
+**Status: done** on 23 November 2026. `relayscope serve` runs beside `relayscope live` on the same database. On the full history, server time was a median of 1.6 ms and at most 8.9 ms for 60 random donation receipts, about 1 ms for epochs and configs, 30 ms for the busiest config, and 218 ms for the overview before it is cached. The first version waited for the label API and failed the target (median 305 ms, worst 1.3 s); labels now load separately. Receipts show each payout's fee line, because it is part of the payout, but no page shows fee totals or fee history. The pages were checked at 375 px in light and dark themes with no sideways scrolling.
 
 ### Phase 6: overlay and webhooks
 

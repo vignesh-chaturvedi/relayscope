@@ -248,7 +248,10 @@ fn inflow(e: &EpochData, close: Option<&CloseRow>, now: i64) -> CheckResult {
     CheckResult::new(
         Check::Inflow,
         outcome,
-        format!("{} donations", e.donations.len()),
+        format!(
+            "{} add up to the closed total",
+            donations_text(e.donations.len())
+        ),
     )
     .numbers(donated, close.gross_epoch)
 }
@@ -277,7 +280,7 @@ fn swap_output(e: &EpochData, swap: Option<&SwapRow>, payout: Option<&PayoutRow>
     CheckResult::new(
         Check::SwapOutput,
         outcome,
-        "reported output vs amount received",
+        "the output account received what the swap reported",
     )
     .numbers(swap.output, received)
 }
@@ -337,7 +340,7 @@ fn settlement(
         }
         "closed total"
     } else if p.instruction == "swap_then_distribute_v1" {
-        "lines only (swap and payout in one instruction)"
+        "total of the lines (swapped and paid in one instruction)"
     } else {
         return CheckResult::new(
             Check::Settlement,
@@ -369,7 +372,7 @@ fn settlement(
     CheckResult::new(
         Check::Settlement,
         Outcome::Pass,
-        format!("lines = settled = {source}"),
+        format!("lines add up to the settled amount, which equals the {source}"),
     )
     .numbers(p.settled, lines)
 }

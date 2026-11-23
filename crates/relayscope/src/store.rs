@@ -230,6 +230,18 @@ const MIGRATIONS: &[&str] = &[
     ) WITHOUT ROWID;
     CREATE INDEX checks_outcome ON checks (check_id, outcome);
     "#,
+    // 3: indexes for the web API, and cached labels from the operator's public API
+    r#"
+    CREATE INDEX donations_slot ON donations (slot);
+    CREATE INDEX donations_donor ON donations (donor);
+    CREATE INDEX donations_credited ON donations (credited_to);
+    CREATE INDEX epoch_payouts_slot ON epoch_payouts (slot);
+    CREATE TABLE labels (
+        config_id  TEXT PRIMARY KEY,
+        data       TEXT,
+        fetched_at INTEGER NOT NULL
+    ) WITHOUT ROWID;
+    "#,
 ];
 
 /// Tables holding what a transaction decoded to, cleared before it is rewritten.
@@ -277,6 +289,19 @@ impl Store {
     }
 
     #[cfg(test)]
+    pub(crate) fn connection(&self) -> &Connection {
+        &self.conn
+    }
+
+    /// A store holding every fixture, for tests elsewhere in the crate.
+    #[cfg(test)]
+    pub(crate) fn with_fixtures() -> Self {
+        let mut store = Self::open_in_memory().unwrap();
+        tests::load_all(&mut store);
+        store
+    }
+
+    #[cfg(test)]
     pub fn open_in_memory() -> Result<Self> {
         Self::init(Connection::open_in_memory()?)
     }
@@ -293,7 +318,16 @@ impl Store {
             .conn
             .pragma_query_value(None, "user_version", |r| r.get(0))?;
         for (i, sql) in MIGRATIONS.iter().enumerate().skip(version) {
-            let tx = self.conn.transaction()?;
+            // Take the write lock first and re-read the version under it, so two processes
+            // opening the database at once never both apply the same migration.
+            let tx = self
+                .conn
+                .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+            let current: usize = tx.pragma_query_value(None, "user_version", |r| r.get(0))?;
+            if current > i {
+                tx.commit()?;
+                continue;
+            }
             tx.execute_batch(sql)
                 .with_context(|| format!("migration {}", i + 1))?;
             tx.pragma_update(None, "user_version", i + 1)?;
@@ -1179,7 +1213,7 @@ mod tests {
         out
     }
 
-    fn load_all(store: &mut Store) {
+    pub(crate) fn load_all(store: &mut Store) {
         let rows: Vec<SignatureRow> = fixtures()
             .iter()
             .map(|(sig, raw)| SignatureRow {
@@ -1220,6 +1254,32 @@ mod tests {
             (t.to_string(), n)
         })
         .collect()
+    }
+
+    #[test]
+    fn two_stores_opening_one_file_migrate_once() {
+        let path =
+            std::env::temp_dir().join(format!("relayscope-migrate-{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let a = std::thread::spawn({
+            let path = path.clone();
+            move || Store::open(&path).map(drop)
+        });
+        let b = std::thread::spawn({
+            let path = path.clone();
+            move || Store::open(&path).map(drop)
+        });
+        a.join().unwrap().unwrap();
+        b.join().unwrap().unwrap();
+        let store = Store::open(&path).unwrap();
+        let version: usize = store
+            .conn
+            .pragma_query_value(None, "user_version", |r| r.get(0))
+            .unwrap();
+        assert_eq!(version, MIGRATIONS.len());
+        for suffix in ["", "-wal", "-shm"] {
+            let _ = std::fs::remove_file(format!("{}{suffix}", path.display()));
+        }
     }
 
     #[test]
