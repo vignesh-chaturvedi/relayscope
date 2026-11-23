@@ -352,3 +352,44 @@ fn failed_transactions_record_no_relay_effects() {
         "the error came from the caller, not the relay"
     );
 }
+
+#[test]
+fn bot_calls_with_empty_data_are_recorded_not_rejected() {
+    // One of nine transactions from a single wallet on 2026-07-28 that called about 30
+    // unrelated programs with empty data. Here the relay itself ran out of compute on it.
+    let tx = load("failed-bot-empty-data");
+    assert!(!tx.succeeded);
+    assert!(tx.instructions.is_empty());
+    assert!(tx.events.is_empty());
+    let [call] = tx.unrecognized.as_slice() else {
+        panic!("expected one unrecognized call")
+    };
+    assert_eq!(call.data_len, 0);
+    assert_eq!(call.discriminator, None);
+}
+
+#[test]
+fn made_up_instruction_is_recorded_not_rejected() {
+    // The relay rejected it with Anchor's InstructionFallbackNotFound (error 101).
+    let tx = load("failed-unknown-instruction");
+    assert!(!tx.succeeded);
+    let [call] = tx.unrecognized.as_slice() else {
+        panic!("expected one unrecognized call")
+    };
+    assert_eq!(
+        call.discriminator,
+        Some([252, 18, 8, 187, 50, 141, 209, 182])
+    );
+}
+
+#[test]
+fn successful_transactions_never_have_unrecognized_calls() {
+    for name in [
+        "payout-exact-after-swap",
+        "donate-cpi-pump-fees",
+        "bridge-admit",
+        "close-epoch",
+    ] {
+        assert!(load(name).unrecognized.is_empty(), "{name}");
+    }
+}

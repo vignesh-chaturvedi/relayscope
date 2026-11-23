@@ -4,7 +4,7 @@ use std::io::Read;
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
-use relayscope_core::{PROGRAM_ID, pda};
+use relayscope_core::{PROGRAM_ID, Pubkey, pda};
 use sha2::{Digest, Sha256};
 
 use crate::rpc::Rpc;
@@ -12,9 +12,9 @@ use crate::rpc::Rpc;
 /// Anchor's IDL account: 8-byte discriminator, 32-byte authority, u32 length, zlib data.
 const HEADER: usize = 8 + 32 + 4;
 
-/// Downloads and decompresses the on-chain IDL, byte for byte.
-pub async fn fetch(rpc: &Rpc) -> Result<Vec<u8>> {
-    let address = pda::idl_address(&PROGRAM_ID);
+/// Downloads and decompresses a program's on-chain Anchor IDL, byte for byte.
+pub async fn fetch(rpc: &Rpc, program: &Pubkey) -> Result<Vec<u8>> {
+    let address = pda::idl_address(program);
     let data = rpc
         .account_data(&address.to_string())
         .await?
@@ -69,7 +69,7 @@ pub async fn check(rpc: &Rpc, pinned: &Path) -> Result<CheckResult> {
             pinned.display()
         );
     }
-    let onchain_digest = sha256_hex(&fetch(rpc).await?);
+    let onchain_digest = sha256_hex(&fetch(rpc, &PROGRAM_ID).await?);
     Ok(if onchain_digest == pinned_digest {
         CheckResult::Matches(pinned_digest)
     } else {

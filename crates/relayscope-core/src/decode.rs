@@ -55,6 +55,18 @@ pub struct DecodedEvent {
     pub event: Event,
 }
 
+/// A call to the relay in a failed transaction that the decoder could not read, such as
+/// empty data or an instruction the program does not have. The transaction failed, so the
+/// call changed nothing; it is recorded instead of rejected.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct UnrecognizedCall {
+    pub position: Position,
+    pub data_len: usize,
+    /// The first eight bytes of the data, when there are at least eight.
+    pub discriminator: Option<[u8; 8]>,
+    pub reason: String,
+}
+
 /// Everything the relay did in one transaction.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct DecodedTx {
@@ -70,6 +82,8 @@ pub struct DecodedTx {
     /// Anchor's built-in IDL management instructions, which update the IDL account and never
     /// touch donations. They are recorded so the transaction is accounted for, not decoded.
     pub idl_management: Vec<Position>,
+    /// Unreadable relay calls in a failed transaction. Always empty for one that succeeded.
+    pub unrecognized: Vec<UnrecognizedCall>,
     /// Balance changes of every token account the transaction touched.
     pub token_balances: Vec<TokenBalanceChange>,
 }
@@ -82,7 +96,10 @@ impl DecodedTx {
 
     /// Whether the relay appears in this transaction at all.
     pub fn touches_relay(&self) -> bool {
-        !self.instructions.is_empty() || !self.events.is_empty() || !self.idl_management.is_empty()
+        !self.instructions.is_empty()
+            || !self.events.is_empty()
+            || !self.idl_management.is_empty()
+            || !self.unrecognized.is_empty()
     }
 }
 
@@ -96,12 +113,17 @@ struct Frame {
 
 /// Decodes every relay instruction and event in a transaction.
 ///
-/// Decoding is strict: an unknown discriminator, or data that does not match the layout
-/// exactly, is an error. A changed program should stop the indexer, not be misread.
+/// Decoding is strict for transactions that succeeded: an unknown discriminator, or data that
+/// does not match the layout exactly, is an error, because a changed program should stop the
+/// indexer, not be misread. A failed transaction changed nothing, so an unreadable call in one
+/// (bots send the relay empty data or made-up instructions) is recorded in
+/// [`DecodedTx::unrecognized`] instead.
 pub fn decode_transaction(tx: &TxView) -> Result<DecodedTx, DecodeError> {
+    let failed = tx.error.is_some();
     let mut instructions = Vec::new();
     let mut events = Vec::new();
     let mut idl_management = Vec::new();
+    let mut unrecognized = Vec::new();
     let mut stack: Vec<Frame> = Vec::new();
 
     for ix in &tx.instructions {
@@ -115,22 +137,48 @@ pub fn decode_transaction(tx: &TxView) -> Result<DecodedTx, DecodeError> {
         let mut relay_instruction = None;
 
         if ix.program_id == PROGRAM_ID {
-            let at = |source| DecodeError::At {
-                signature: tx.signature.clone(),
-                position: ix.position.to_string(),
-                source: Box::new(source),
+            // In a failed transaction, an unreadable call is recorded; otherwise it is an error.
+            let mut reject = |source: DecodeError| -> Result<(), DecodeError> {
+                if failed {
+                    unrecognized.push(UnrecognizedCall {
+                        position: ix.position,
+                        data_len: ix.data.len(),
+                        discriminator: ix.data.get(..8).map(|d| d.try_into().expect("8 bytes")),
+                        reason: source.to_string(),
+                    });
+                    Ok(())
+                } else {
+                    Err(DecodeError::At {
+                        signature: tx.signature.clone(),
+                        position: ix.position.to_string(),
+                        source: Box::new(source),
+                    })
+                }
             };
             if ix.data.starts_with(&IDL_IX_TAG) {
                 idl_management.push(ix.position);
             } else if Event::is_event_data(&ix.data) {
-                let event = Event::decode(&ix.data).map_err(at)?;
-                events.push(DecodedEvent {
-                    position: ix.position,
-                    emitted_by: caller.and_then(|frame| frame.relay_instruction),
-                    event,
-                });
+                match Event::decode(&ix.data) {
+                    Ok(event) => events.push(DecodedEvent {
+                        position: ix.position,
+                        emitted_by: caller.and_then(|frame| frame.relay_instruction),
+                        event,
+                    }),
+                    Err(error) => reject(error)?,
+                }
             } else {
-                let instruction = Instruction::decode(&ix.data).map_err(at)?;
+                let instruction = match Instruction::decode(&ix.data) {
+                    Ok(instruction) => instruction,
+                    Err(error) => {
+                        reject(error)?;
+                        stack.push(Frame {
+                            stack_height: ix.stack_height,
+                            program_id: ix.program_id,
+                            relay_instruction: None,
+                        });
+                        continue;
+                    }
+                };
                 let names = instruction.account_names();
                 let named = ix.accounts.len().min(names.len());
                 relay_instruction = Some(instructions.len());
@@ -169,6 +217,7 @@ pub fn decode_transaction(tx: &TxView) -> Result<DecodedTx, DecodeError> {
         instructions,
         events,
         idl_management,
+        unrecognized,
         token_balances: tx.token_balances.clone(),
     })
 }
@@ -187,6 +236,61 @@ fn relay_error(logs: &[String]) -> Option<ProgramError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tx::InstructionView;
+
+    fn view_with_relay_data(data: Vec<u8>, error: Option<serde_json::Value>) -> TxView {
+        TxView {
+            signature: "test".into(),
+            slot: 1,
+            block_time: None,
+            error,
+            fee_payer: Pubkey::new([1; 32]),
+            instructions: vec![InstructionView {
+                position: Position {
+                    top: 0,
+                    inner: None,
+                },
+                program_id: PROGRAM_ID,
+                accounts: vec![],
+                data,
+                stack_height: 1,
+            }],
+            token_balances: vec![],
+            log_messages: vec![],
+        }
+    }
+
+    #[test]
+    fn unknown_instruction_in_a_successful_transaction_is_an_error() {
+        let tx = view_with_relay_data(vec![252, 18, 8, 187, 50, 141, 209, 182], None);
+        assert!(matches!(
+            decode_transaction(&tx),
+            Err(DecodeError::At { .. })
+        ));
+    }
+
+    #[test]
+    fn empty_data_in_a_successful_transaction_is_an_error() {
+        let tx = view_with_relay_data(vec![], None);
+        assert!(decode_transaction(&tx).is_err());
+    }
+
+    #[test]
+    fn unreadable_calls_in_a_failed_transaction_are_recorded() {
+        let failed = Some(serde_json::json!({"InstructionError": [0, {"Custom": 101}]}));
+        let tx = view_with_relay_data(vec![252, 18, 8, 187, 50, 141, 209, 182], failed);
+        let decoded = decode_transaction(&tx).unwrap();
+        assert!(!decoded.succeeded);
+        assert!(decoded.instructions.is_empty());
+        let [call] = decoded.unrecognized.as_slice() else {
+            panic!("expected one call")
+        };
+        assert_eq!(call.data_len, 8);
+        assert_eq!(
+            call.discriminator,
+            Some([252, 18, 8, 187, 50, 141, 209, 182])
+        );
+    }
 
     #[test]
     fn reads_the_relay_error_from_logs() {

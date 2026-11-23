@@ -1,0 +1,49 @@
+{
+  "signature": "22Uyzwcc8hjsYiZbDTrpwVAsqVYTfGXLAmkRg5iAxrom6ZcTyzrZu5pffAhRDHMruRNh6sgCCUCncmcEYvXZV2v6",
+  "slot": 424514708,
+  "block_time": 1780684205,
+  "fee_payer": "88888K2PV25UYoxryyCKE8BeVRXAe5QvaGPrspixsmUb",
+  "succeeded": false,
+  "program_error": null,
+  "instructions": [],
+  "events": [],
+  "idl_management": [],
+  "unrecognized": [
+    {
+      "position": {
+        "top": 0,
+        "inner": null
+      },
+      "data_len": 8,
+      "discriminator": [
+        252,
+        18,
+        8,
+        187,
+        50,
+        141,
+        209,
+        182
+      ],
+      "reason": "unknown instruction discriminator [252, 18, 8, 187, 50, 141, 209, 182]"
+    }
+  ],
+  "token_balances": [
+    {
+      "account": "GKsKQidAWFP8J5fMGSdJdSsf4z8NzwcNLrA2YrEKTW9r",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "88888K2PV25UYoxryyCKE8BeVRXAe5QvaGPrspixsmUb",
+      "decimals": 6,
+      "pre": 11567774,
+      "post": 11567774
+    },
+    {
+      "account": "HsQcHFFNUVTp3MWrXYbuZchBNd4Pwk8636bKzLvpfYNR",
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "DB3sUCP2H4icbeKmK6yb6nUxU5ogbcRHtGuq7W2RoRwW",
+      "decimals": 6,
+      "pre": 54903720919,
+      "post": 54903720919
+    }
+  ]
+}

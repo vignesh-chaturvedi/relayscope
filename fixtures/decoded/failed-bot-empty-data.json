@@ -1,0 +1,23 @@
+{
+  "signature": "Fw3NBWNiP7yR7EtVp8h4hBDnU17rCcg2CFL7znkqhq5yR9DNTtLEzw6SWznY3ZaS76wLC2YBkphd8BenQP8dWbq",
+  "slot": 435750285,
+  "block_time": 1785244673,
+  "fee_payer": "HWLAWoYXBuLGAyZYy4LtEa54mo4gyUjRyL3FXytoW8i9",
+  "succeeded": false,
+  "program_error": null,
+  "instructions": [],
+  "events": [],
+  "idl_management": [],
+  "unrecognized": [
+    {
+      "position": {
+        "top": 1,
+        "inner": null
+      },
+      "data_len": 0,
+      "discriminator": null,
+      "reason": "data too short for a discriminator: 0 bytes"
+    }
+  ],
+  "token_balances": []
+}

@@ -28,7 +28,9 @@ pub mod tx;
 pub mod types;
 
 pub use accounts::{ACCOUNTS, Account};
-pub use decode::{DecodedEvent, DecodedInstruction, DecodedTx, NamedAccount, decode_transaction};
+pub use decode::{
+    DecodedEvent, DecodedInstruction, DecodedTx, NamedAccount, UnrecognizedCall, decode_transaction,
+};
 pub use error::{DecodeError, PROGRAM_ERRORS, ProgramError};
 pub use events::{EVENTS, Event};
 pub use instructions::{INSTRUCTIONS, Instruction};

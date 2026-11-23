@@ -1,5 +1,8 @@
+mod backfill;
 mod idl;
 mod rpc;
+mod stats;
+mod store;
 
 use std::path::PathBuf;
 
@@ -8,14 +11,29 @@ use clap::{Parser, Subcommand};
 use relayscope_core::{DecodedTx, TxView, decode_transaction};
 
 use crate::rpc::{DEFAULT_RPC_URL, Rpc};
+use crate::store::Store;
 
 /// Real-time tracker for the Donation Relay program on Solana.
 #[derive(Parser)]
 #[command(version)]
 struct Cli {
-    /// Solana JSON-RPC endpoint.
-    #[arg(long, global = true, env = "RELAYSCOPE_RPC_URL", default_value = DEFAULT_RPC_URL)]
+    /// Solana JSON-RPC endpoint. Backfill needs one that keeps full history.
+    #[arg(long, global = true, env = "RELAYSCOPE_RPC_URL", default_value = DEFAULT_RPC_URL, hide_env_values = true)]
     rpc_url: String,
+
+    /// Requests per second to send, across all concurrent requests. Solana's public endpoint
+    /// allows about 4 per second for one method.
+    #[arg(long, global = true, env = "RELAYSCOPE_RPS", default_value_t = 3.5)]
+    rps: f64,
+
+    /// SQLite database file.
+    #[arg(
+        long,
+        global = true,
+        env = "RELAYSCOPE_DB",
+        default_value = "data/relayscope.db"
+    )]
+    db: PathBuf,
 
     #[command(subcommand)]
     command: Command,
@@ -23,6 +41,37 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// List every signature that touched the program, then fetch, decode and store each
+    /// transaction. Safe to stop and rerun: it resumes where it stopped.
+    Backfill {
+        /// Requests in flight at once.
+        #[arg(long, default_value_t = 4)]
+        concurrency: usize,
+        /// Transactions written per SQLite transaction.
+        #[arg(long, default_value_t = 50)]
+        batch: usize,
+        /// Stop after storing this many transactions.
+        #[arg(long)]
+        max: Option<u64>,
+        /// Only list signatures; fetch nothing.
+        #[arg(long)]
+        list_only: bool,
+        /// Skip listing and only fetch what is already queued.
+        #[arg(long, conflicts_with = "list_only")]
+        skip_list: bool,
+    },
+    /// Counts and totals from the database.
+    Stats {
+        /// Also list up to this many decode failures.
+        #[arg(long, default_value_t = 10)]
+        failures: usize,
+    },
+    /// Re-decode stored transactions with the current decoder, without fetching.
+    Reindex {
+        /// Only the transactions the decoder rejected before.
+        #[arg(long)]
+        failed_only: bool,
+    },
     /// Work with the program's on-chain IDL.
     Idl {
         #[command(subcommand)]
@@ -52,6 +101,9 @@ enum IdlCommand {
     Fetch {
         #[arg(long, default_value = "idl/donation_relay.json")]
         out: PathBuf,
+        /// Fetch another program's Anchor IDL instead, for comparison.
+        #[arg(long)]
+        program: Option<String>,
     },
     /// Compare the on-chain IDL with the pinned copy. Exits with 1 if they differ.
     Check {
@@ -62,14 +114,84 @@ enum IdlCommand {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // A local .env may hold RELAYSCOPE_RPC_URL and other settings. It is optional.
+    dotenvy::dotenv().ok();
     let cli = Cli::parse();
-    let rpc = Rpc::new(&cli.rpc_url);
+    let rpc = Rpc::new(&cli.rpc_url, cli.rps);
 
     match cli.command {
-        Command::Idl {
-            command: IdlCommand::Fetch { out },
+        Command::Backfill {
+            concurrency,
+            batch,
+            max,
+            list_only,
+            skip_list,
         } => {
-            let bytes = idl::fetch(&rpc).await?;
+            let mut store = Store::open(&cli.db)?;
+            eprintln!(
+                "backfill into {} from {} at {} requests/s",
+                cli.db.display(),
+                rpc.host(),
+                cli.rps
+            );
+            if !skip_list {
+                let listed = backfill::list(&rpc, &mut store).await?;
+                eprintln!(
+                    "listed {} pages, {} new signatures",
+                    listed.pages, listed.added
+                );
+            }
+            if !list_only {
+                let options = backfill::FetchOptions {
+                    concurrency,
+                    batch,
+                    max,
+                };
+                let fetched = backfill::fetch(&rpc, &mut store, &options).await?;
+                eprintln!(
+                    "stored {} transactions, {} decode failures, {} could not be fetched ({} still queued)",
+                    fetched.stored,
+                    fetched.decode_failures,
+                    fetched.fetch_failures,
+                    store.count_unfetched()?
+                );
+                if fetched.decode_failures > 0 {
+                    eprintln!("run `relayscope stats` to see the decode failures");
+                    std::process::exit(2);
+                }
+            }
+        }
+        Command::Stats { failures } => {
+            let store = Store::open(&cli.db)?;
+            stats::print(&store.stats()?);
+            let listed = store.decode_failures(failures)?;
+            if !listed.is_empty() {
+                println!("\ndecode failures (newest first)");
+                for (signature, error) in listed {
+                    println!("  {signature}: {error}");
+                }
+            }
+        }
+        Command::Reindex { failed_only } => {
+            let mut store = Store::open(&cli.db)?;
+            let report = store.reindex(failed_only, |raw| {
+                Ok(decode_transaction(&TxView::from_rpc_json(raw)?)?)
+            })?;
+            println!(
+                "re-decoded {} transactions, {} failed",
+                report.decoded, report.failed
+            );
+        }
+        Command::Idl {
+            command: IdlCommand::Fetch { out, program },
+        } => {
+            let program = match program {
+                Some(p) => p
+                    .parse()
+                    .map_err(|e| anyhow::anyhow!("bad program ID {p}: {e}"))?,
+                None => relayscope_core::PROGRAM_ID,
+            };
+            let bytes = idl::fetch(&rpc, &program).await?;
             let digest = idl::write_pinned(&out, &bytes)?;
             println!(
                 "wrote {} ({} bytes), sha256 {digest}",
