@@ -29,7 +29,7 @@ rusqlite = { version = "0.43", features = ["bundled", "fallible_uint"] }
 zstd = "0.14"
 futures = "0.3"
 dotenvy = "0.15"
-axum = "0.8"
+axum = { version = "0.8", features = ["ws"] }
 tower-http = { version = "0.6", features = ["fs"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }

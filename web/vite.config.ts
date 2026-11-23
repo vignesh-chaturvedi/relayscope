@@ -22,5 +22,5 @@ export default defineConfig({
       input: { main: resolve(__dirname, "index.html"), overlay: resolve(__dirname, "overlay.html") },
     },
   },
-  server: { proxy: { "/api": "http://127.0.0.1:8790" } },
+  server: { proxy: { "/api": { target: "http://127.0.0.1:8790", ws: true } } },
 });

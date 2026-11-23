@@ -294,6 +294,25 @@ fn epoch(value: u128) -> Result<i64> {
     i64::try_from(value).map_err(|_| anyhow!("epoch {value} does not fit in a SQLite integer"))
 }
 
+/// Switches a database to WAL. Two processes opening a new file at once (`live` and `serve` on a fresh
+/// volume) both hold a read lock when they ask for the write lock this needs, and SQLite refuses one of
+/// them at once rather than wait, to avoid a deadlock. So this retries for up to 10 seconds.
+fn set_wal(conn: &Connection) -> Result<()> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    loop {
+        match conn.pragma_update_and_check(None, "journal_mode", "WAL", |r| r.get::<_, String>(0)) {
+            Ok(_) => return Ok(()),
+            Err(rusqlite::Error::SqliteFailure(e, _))
+                if e.code == rusqlite::ErrorCode::DatabaseBusy
+                    && std::time::Instant::now() < deadline =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+}
+
 fn now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -307,7 +326,8 @@ impl Store {
             std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
         }
         let conn = Connection::open(path).with_context(|| format!("opening {}", path.display()))?;
-        conn.pragma_update(None, "journal_mode", "WAL")?;
+        conn.busy_timeout(std::time::Duration::from_secs(10))?;
+        set_wal(&conn)?;
         conn.pragma_update(None, "synchronous", "NORMAL")?;
         Self::init(conn)
     }
@@ -320,6 +340,14 @@ impl Store {
     #[cfg(test)]
     pub(crate) fn into_connection(self) -> Connection {
         self.conn
+    }
+
+    /// A database file holding every fixture, for tests that need a real file.
+    #[cfg(test)]
+    pub(crate) fn open_with_fixtures(path: &Path) -> Self {
+        let mut store = Self::open(path).unwrap();
+        tests::load_all(&mut store);
+        store
     }
 
     /// A store holding every fixture, for tests elsewhere in the crate.

@@ -3,6 +3,7 @@
 
 import type { Donation } from "../api";
 import { formatAmount, shortAddress, tokenName } from "../format";
+import { followDonations } from "../live";
 import { cleanMessage, readOptions } from "./options";
 import "./overlay.css";
 
@@ -161,18 +162,15 @@ function problem(text: string) {
 }
 
 function connect() {
-  const params = new URLSearchParams({ config });
-  if (options.key) params.set("key", options.key);
-  const source = new EventSource(`/api/v1/stream?${params}`);
-  source.addEventListener("open", () => status(`Connected. Waiting for donations to ${shortAddress(config, 6)}.`));
-  source.addEventListener("donation", (e) => onDonation(JSON.parse((e as MessageEvent<string>).data) as Donation));
-  source.addEventListener("test", onTest);
-  source.addEventListener("error", () => {
-    // EventSource reconnects by itself, and resends the last slot so missed donations come back.
-    // If the server refused the stream outright, start over after a pause.
-    status("Connection lost. Reconnecting.");
-    if (source.readyState === EventSource.CLOSED) setTimeout(connect, 5_000);
-  });
+  followDonations(
+    { config, key: options.key },
+    {
+      donation: onDonation,
+      test: onTest,
+      status: (connected) =>
+        status(connected ? `Connected. Waiting for donations to ${shortAddress(config, 6)}.` : "Connection lost. Reconnecting."),
+    },
+  );
 }
 
 // A config ID is 32 bytes, in hex or base58.

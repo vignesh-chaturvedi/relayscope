@@ -1,0 +1,24 @@
+name: IDL check
+
+# Every week, and on demand: fail if the program's on-chain IDL no longer matches the pinned
+# copy in idl/, so a program upgrade never goes unnoticed. Set the RELAYSCOPE_RPC_URL secret to
+# use your own endpoint; Solana's public endpoint is enough for this one request.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  idl:
+    name: On-chain IDL matches the pinned copy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo run --release --locked -p relayscope -- idl check
+        env:
+          RELAYSCOPE_RPC_URL: ${{ secrets.RELAYSCOPE_RPC_URL || 'https://api.mainnet-beta.solana.com' }}

@@ -1,0 +1,43 @@
+# docker compose up, then open http://localhost:8790
+#
+# `live` follows the program and keeps the database current; `serve` runs the API, the web app
+# and the overlay on the same database. On an empty database, `live` first fetches the program's
+# whole history, then follows new blocks. Put RELAYSCOPE_RPC_URL in .env: an archival endpoint
+# such as a free Helius key takes about 20 hours at the default pace (RELAYSCOPE_RPS=9 in .env
+# speeds it up if your plan allows), Solana's public endpoint more than a week.
+#
+# docker compose --profile tunnel up adds a temporary public URL through a Cloudflare quick
+# tunnel. The URL is in `docker compose logs tunnel` and changes whenever the tunnel restarts.
+
+x-relayscope: &relayscope
+  build: .
+  image: relayscope:local
+  env_file:
+    - path: .env
+      required: false
+  volumes:
+    - relayscope-data:/data
+  restart: unless-stopped
+
+services:
+  live:
+    <<: *relayscope
+    command: ["live"]
+
+  serve:
+    <<: *relayscope
+    command: ["serve"]
+    # Bound to this machine only; use the tunnel or your own proxy to publish it.
+    ports:
+      - "127.0.0.1:8790:8790"
+
+  tunnel:
+    image: cloudflare/cloudflared:2026.11.0
+    profiles: ["tunnel"]
+    command: ["tunnel", "--no-autoupdate", "--url", "http://serve:8790"]
+    depends_on:
+      - serve
+    restart: unless-stopped
+
+volumes:
+  relayscope-data:

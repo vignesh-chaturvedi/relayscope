@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use axum::Router;
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path as UrlPath, Query, Request, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::middleware::{self, Next};
@@ -125,6 +126,32 @@ async fn query<T: Send + 'static>(
 }
 
 pub async fn run(options: ServeOptions) -> Result<()> {
+    let endpoints = options.webhooks.as_ref().map_or(0, |w| w.endpoints.len());
+    let banner = format!(
+        "serving on http://{} (web app from {}, labels {}, webhooks to {endpoints} {})",
+        options.listen,
+        options.web.display(),
+        if options.labels_url.is_some() {
+            "on"
+        } else {
+            "off"
+        },
+        if endpoints == 1 {
+            "endpoint"
+        } else {
+            "endpoints"
+        }
+    );
+    let listen = options.listen;
+    let app = app(options)?;
+    let listener = tokio::net::TcpListener::bind(listen).await?;
+    eprintln!("{banner}");
+    axum::serve(listener, app).await?;
+    Ok(())
+}
+
+/// The router, with the live-feed watcher and any webhooks started in the background.
+fn app(options: ServeOptions) -> Result<Router> {
     let tokens = {
         let conn = open_read_only(&options.db)?;
         Tokens::load(&conn)?
@@ -141,7 +168,6 @@ pub async fn run(options: ServeOptions) -> Result<()> {
     });
     tokio::spawn(watch_donations(state.clone()));
     tokio::spawn(refresh_tokens(state.clone()));
-    let endpoints = options.webhooks.as_ref().map_or(0, |w| w.endpoints.len());
     if let Some(config) = options.webhooks {
         let db = options.db.clone();
         tokio::spawn(async move {
@@ -163,6 +189,7 @@ pub async fn run(options: ServeOptions) -> Result<()> {
         .route("/api/v1/search", get(search))
         .route("/api/v1/checks", get(checks))
         .route("/api/v1/stream", get(stream))
+        .route("/api/v1/live", get(live))
         .route("/api/v1/overlay/test", post(overlay_test))
         .route_service(
             "/overlay/{config}",
@@ -171,25 +198,7 @@ pub async fn run(options: ServeOptions) -> Result<()> {
         .fallback_service(ServeDir::new(&options.web).fallback(ServeFile::new(index)))
         .layer(middleware::from_fn(timing))
         .with_state(state);
-
-    let listener = tokio::net::TcpListener::bind(options.listen).await?;
-    eprintln!(
-        "serving on http://{} (web app from {}, labels {}, webhooks to {endpoints} {})",
-        options.listen,
-        options.web.display(),
-        if options.labels_url.is_some() {
-            "on"
-        } else {
-            "off"
-        },
-        if endpoints == 1 {
-            "endpoint"
-        } else {
-            "endpoints"
-        }
-    );
-    axum::serve(listener, app).await?;
-    Ok(())
+    Ok(app)
 }
 
 /// Adds `Server-Timing` to every response, so the time spent in the server is visible.
@@ -414,6 +423,77 @@ fn donation_event(d: &DonationBrief) -> Option<Event> {
     )
 }
 
+/// What one live client is sent: donations to its config (or every donation) and, with a valid
+/// key, its overlay's test alerts.
+struct Subscription {
+    config: Option<String>,
+    key: Option<String>,
+    /// Counts this client as an open overlay while it is connected.
+    _open: Option<OverlayGuard>,
+    /// Donations already sent as missed, so the live feed does not send them twice.
+    replayed: HashSet<(String, i64)>,
+}
+
+enum Outgoing {
+    Donation(Box<DonationBrief>),
+    Test,
+}
+
+impl Subscription {
+    /// Subscribes to the feed, then reads what was missed since `after` (a slot), so nothing
+    /// falls between the two. Returns the subscription, its receiver and the missed donations.
+    async fn start(
+        state: &Shared,
+        config: Option<&str>,
+        key: Option<String>,
+        after: Option<i64>,
+    ) -> Result<(Self, broadcast::Receiver<FeedItem>, Vec<DonationBrief>), ApiError> {
+        // A bad config ID is refused, so a mistyped overlay URL never shows every donation.
+        let config = config.map(config_hex).transpose()?;
+        let key = key.filter(|k| valid_key(k));
+        let open = match (&config, &key) {
+            (Some(c), Some(k)) => Some(OverlayGuard::new(state, (c.clone(), k.clone()))),
+            _ => None,
+        };
+        let receiver = state.feed.subscribe();
+        let missed = match (&config, after) {
+            (Some(c), Some(slot)) => {
+                let c = c.clone();
+                query(state, move |conn, t| {
+                    api::config_donations_since(conn, t, &c, slot, 20)
+                })
+                .await
+                .unwrap_or_default()
+            }
+            _ => Vec::new(),
+        };
+        let replayed = missed
+            .iter()
+            .map(|d| (d.signature.clone(), d.ordinal))
+            .collect();
+        let subscription = Self {
+            config,
+            key,
+            _open: open,
+            replayed,
+        };
+        Ok((subscription, receiver, missed))
+    }
+
+    fn pick(&self, item: FeedItem) -> Option<Outgoing> {
+        match item {
+            FeedItem::Donation(d) => {
+                let other_config = self.config.as_ref().is_some_and(|c| *c != d.pool.config_id);
+                let sent = self.replayed.contains(&(d.signature.clone(), d.ordinal));
+                (!other_config && !sent).then_some(Outgoing::Donation(d))
+            }
+            FeedItem::Test { config_id, key } => (self.config.as_ref() == Some(&config_id)
+                && self.key.as_ref() == Some(&key))
+            .then_some(Outgoing::Test),
+        }
+    }
+}
+
 /// New donations as they are stored, as `donation` events whose ID is the slot. `?config=`
 /// limits it to one config, and then a client that reconnects with `Last-Event-ID` first gets
 /// what it missed. `?key=` adds `test` events for that overlay.
@@ -422,34 +502,12 @@ async fn stream(
     headers: HeaderMap,
     Query(params): Query<StreamParams>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, ApiError> {
-    // A bad config ID is refused, so a mistyped overlay URL never shows every donation.
-    let config = params.config.as_deref().map(config_hex).transpose()?;
-    let key = params.key.filter(|k| valid_key(k));
-    let guard = match (&config, &key) {
-        (Some(c), Some(k)) => Some(OverlayGuard::new(&state, (c.clone(), k.clone()))),
-        _ => None,
-    };
-    // Subscribe before reading what was missed, so nothing falls between the two.
-    let receiver = state.feed.subscribe();
     let last_slot = headers
         .get("last-event-id")
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse::<i64>().ok());
-    let missed = match (&config, last_slot) {
-        (Some(c), Some(slot)) => {
-            let c = c.clone();
-            query(&state, move |conn, t| {
-                api::config_donations_since(conn, t, &c, slot, 20)
-            })
-            .await
-            .unwrap_or_default()
-        }
-        _ => Vec::new(),
-    };
-    let replayed: HashSet<(String, i64)> = missed
-        .iter()
-        .map(|d| (d.signature.clone(), d.ordinal))
-        .collect();
+    let (subscription, receiver, missed) =
+        Subscription::start(&state, params.config.as_deref(), params.key, last_slot).await?;
     let head = futures::stream::iter(
         missed
             .iter()
@@ -458,26 +516,86 @@ async fn stream(
             .collect::<Vec<_>>(),
     );
     let live = BroadcastStream::new(receiver).filter_map(move |item| {
-        let _open = &guard;
-        let event = match item {
-            Ok(FeedItem::Donation(d)) => {
-                let other_config = config.as_ref().is_some_and(|c| *c != d.pool.config_id);
-                if other_config || replayed.contains(&(d.signature.clone(), d.ordinal)) {
-                    None
-                } else {
-                    donation_event(&d)
-                }
-            }
-            Ok(FeedItem::Test { config_id, key: k })
-                if config.as_ref() == Some(&config_id) && key.as_ref() == Some(&k) =>
-            {
-                Some(Event::default().event("test").data("{}"))
-            }
-            _ => None,
+        let event = match item.ok().and_then(|i| subscription.pick(i)) {
+            Some(Outgoing::Donation(d)) => donation_event(&d),
+            Some(Outgoing::Test) => Some(Event::default().event("test").data("{}")),
+            None => None,
         };
         async move { event.map(Ok) }
     });
     Ok(Sse::new(head.chain(live)).keep_alive(KeepAlive::default()))
+}
+
+#[derive(Deserialize)]
+struct LiveParams {
+    config: Option<String>,
+    key: Option<String>,
+    /// The newest slot the client has seen, to be sent what it missed (needs `config`).
+    after: Option<i64>,
+}
+
+/// The same feed as `/stream`, over a WebSocket, which passes through proxies that hold back
+/// server-sent events (Cloudflare's quick tunnels do). Each message is JSON, either
+/// `{"type":"donation","donation":{...}}` or `{"type":"test"}`.
+async fn live(
+    State(state): State<Shared>,
+    Query(params): Query<LiveParams>,
+    upgrade: WebSocketUpgrade,
+) -> Result<Response, ApiError> {
+    let (subscription, receiver, missed) =
+        Subscription::start(&state, params.config.as_deref(), params.key, params.after).await?;
+    Ok(upgrade.on_upgrade(move |socket| live_session(socket, subscription, receiver, missed)))
+}
+
+async fn live_session(
+    mut socket: WebSocket,
+    subscription: Subscription,
+    mut receiver: broadcast::Receiver<FeedItem>,
+    missed: Vec<DonationBrief>,
+) {
+    for d in missed {
+        if send_live(&mut socket, Outgoing::Donation(Box::new(d)))
+            .await
+            .is_err()
+        {
+            return;
+        }
+    }
+    // Pings keep idle proxies from closing the connection.
+    let mut ping = tokio::time::interval(Duration::from_secs(15));
+    ping.tick().await;
+    loop {
+        tokio::select! {
+            item = receiver.recv() => match item {
+                Ok(item) => {
+                    if let Some(out) = subscription.pick(item)
+                        && send_live(&mut socket, out).await.is_err()
+                    {
+                        return;
+                    }
+                }
+                Err(broadcast::error::RecvError::Lagged(_)) => {}
+                Err(broadcast::error::RecvError::Closed) => return,
+            },
+            _ = ping.tick() => {
+                if socket.send(Message::Ping(Vec::new().into())).await.is_err() {
+                    return;
+                }
+            }
+            incoming = socket.recv() => match incoming {
+                Some(Ok(Message::Close(_)) | Err(_)) | None => return,
+                Some(Ok(_)) => {}
+            },
+        }
+    }
+}
+
+async fn send_live(socket: &mut WebSocket, out: Outgoing) -> Result<(), axum::Error> {
+    let text = match out {
+        Outgoing::Donation(d) => json!({ "type": "donation", "donation": d }).to_string(),
+        Outgoing::Test => r#"{"type":"test"}"#.to_string(),
+    };
+    socket.send(Message::Text(text.into())).await
 }
 
 #[derive(Deserialize)]
@@ -713,5 +831,127 @@ impl Labels {
         if let Err(error) = write() {
             eprintln!("labels: could not cache {config_id}: {error:#}");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::store::Store;
+    use futures::StreamExt;
+    use tokio_tungstenite::connect_async;
+    use tokio_tungstenite::tungstenite::Message as WsMessage;
+
+    async fn serve_fixtures() -> (SocketAddr, String) {
+        let dir = std::env::temp_dir().join(format!(
+            "relayscope-server-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = dir.join("test.db");
+        let config_id: String = {
+            let store = Store::open_with_fixtures(&db);
+            store
+                .connection()
+                .query_row(
+                    "SELECT config_id FROM donations ORDER BY slot LIMIT 1",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap()
+        };
+        let app = app(ServeOptions {
+            listen: "127.0.0.1:0".parse().unwrap(),
+            db,
+            web: dir,
+            labels_url: None,
+            webhooks: None,
+        })
+        .unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        (addr, config_id)
+    }
+
+    async fn next_text(
+        socket: &mut tokio_tungstenite::WebSocketStream<
+            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        >,
+    ) -> Value {
+        loop {
+            let message = tokio::time::timeout(Duration::from_secs(5), socket.next())
+                .await
+                .expect("a message within 5 seconds")
+                .unwrap()
+                .unwrap();
+            if let WsMessage::Text(text) = message {
+                return serde_json::from_str(&text).unwrap();
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn live_socket_replays_missed_donations_and_delivers_test_alerts() {
+        let (addr, config) = serve_fixtures().await;
+        let key = "abcdefghijklmnop1234";
+
+        // A client that saw nothing yet (after=0) first gets the config's donations.
+        let (mut socket, _) = connect_async(format!(
+            "ws://{addr}/api/v1/live?config={config}&key={key}&after=0"
+        ))
+        .await
+        .unwrap();
+        let first = next_text(&mut socket).await;
+        assert_eq!(first["type"], "donation");
+        assert_eq!(first["donation"]["pool"]["config_id"], config.as_str());
+
+        // A test alert reaches the socket, and the server counts it as an open overlay.
+        let sent: Value = reqwest::Client::new()
+            .post(format!("http://{addr}/api/v1/overlay/test"))
+            .json(&json!({ "config": config, "key": key }))
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(sent["overlays"], 1);
+        loop {
+            let message = next_text(&mut socket).await;
+            if message["type"] == "test" {
+                break;
+            }
+            assert_eq!(
+                message["type"], "donation",
+                "only replayed donations come first"
+            );
+        }
+
+        // Closing the socket stops counting it.
+        socket.close(None).await.unwrap();
+        // Past the limit of one test alert every two seconds per key.
+        tokio::time::sleep(Duration::from_millis(2_100)).await;
+        let sent: Value = reqwest::Client::new()
+            .post(format!("http://{addr}/api/v1/overlay/test"))
+            .json(&json!({ "config": config, "key": key }))
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(sent["overlays"], 0);
+
+        // A config ID that does not parse is refused, rather than streaming every donation.
+        assert!(
+            connect_async(format!("ws://{addr}/api/v1/live?config=nope"))
+                .await
+                .is_err()
+        );
     }
 }

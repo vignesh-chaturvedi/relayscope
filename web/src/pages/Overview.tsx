@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { type Donation, type Overview, epochPath } from "../api";
 import { AmountText, Badge, CHECK_TITLES, Loaded, Section, Stat, Time, TxLink, useApi } from "../components";
 import { formatCount } from "../format";
+import { followDonations } from "../live";
 
 /** Recent donations, with new ones added live as the server announces them. */
 function LiveFeed({ initial }: { initial: Donation[] }) {
@@ -10,18 +11,21 @@ function LiveFeed({ initial }: { initial: Donation[] }) {
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState(false);
 
-  useEffect(() => {
-    const source = new EventSource("/api/v1/stream");
-    source.onopen = () => setConnected(true);
-    source.onerror = () => setConnected(false);
-    source.addEventListener("donation", (event) => {
-      const d = JSON.parse((event as MessageEvent).data) as Donation;
-      const key = `${d.signature}:${d.ordinal}`;
-      setItems((list) => (list.some((x) => `${x.signature}:${x.ordinal}` === key) ? list : [d, ...list].slice(0, 50)));
-      setFresh((s) => new Set(s).add(key));
-    });
-    return () => source.close();
-  }, []);
+  useEffect(
+    () =>
+      followDonations(
+        {},
+        {
+          status: setConnected,
+          donation: (d) => {
+            const key = `${d.signature}:${d.ordinal}`;
+            setItems((list) => (list.some((x) => `${x.signature}:${x.ordinal}` === key) ? list : [d, ...list].slice(0, 50)));
+            setFresh((s) => new Set(s).add(key));
+          },
+        },
+      ),
+    [],
+  );
 
   return (
     <Section

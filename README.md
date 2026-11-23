@@ -4,9 +4,31 @@ A real-time tracker for the Donation Relay program on Solana (`RLAYHr9TRFcKB2ubY
 
 Relayscope follows every donation from the donor's transaction to the payout, checks that every epoch balances, and gives streamers and integrators a live feed, an OBS overlay and signed webhooks.
 
+![A real donation: its stream alert, then its receipt from donated to paid out](docs/media/relayscope.gif)
+
+[Watch the 45-second demo](docs/media/relayscope-demo.mp4): one real mainnet donation, from the stream alert to the payout and the checks.
+
 An independent, unofficial project.
 
-**Status:** phases 1 to 6 of 7 are done: a decoder for every instruction, event and account in the program, its full history indexed into SQLite (243,023 transactions, 0 decode failures), every epoch reconciled (49,159 epochs, 0 failed checks), live following with a recorded kill test, a web app with a receipt for every donation, an OBS overlay that showed a real donation 2 seconds after its block, and signed webhooks. See the [build plan](docs/BUILD_PLAN.md) and the [methodology](docs/METHODOLOGY.md).
+**Status:** all 7 phases are done: a decoder for every instruction, event and account in the program, its full history indexed into SQLite (243,023 transactions, 0 decode failures), every epoch reconciled (49,159 epochs, 0 failed checks), live following with a recorded kill test, a web app with a receipt for every donation, an OBS overlay that showed a real donation 2 seconds after its block, signed webhooks, and a Docker image with CI. See the [build plan](docs/BUILD_PLAN.md) and the [methodology](docs/METHODOLOGY.md).
+
+## Quickstart
+
+Requires Docker with Compose 2.24 or newer.
+
+```bash
+git clone https://github.com/vignesh-chaturvedi/relayscope && cd relayscope
+
+# An RPC endpoint that keeps full history, such as a free Helius key
+echo 'RELAYSCOPE_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY' > .env
+
+docker compose up -d          # then open http://localhost:8790
+docker compose logs -f live   # watch the history load, then live blocks
+```
+
+`live` keeps the database current and `serve` runs the API, the web app and the overlay on the same volume. On an empty database, `live` first fetches the program's whole history, about 240,000 transactions, then follows new blocks. At the default pace of 3.5 requests a second that takes about 20 hours; add `RELAYSCOPE_RPS=9` to `.env` if your plan allows it (Helius's free plan did, for about 4 transactions a second). Solana's public endpoint throttles to a crawl, more than a week. The site works while it loads.
+
+To share it, `docker compose --profile tunnel up -d` adds a Cloudflare quick tunnel; `docker compose logs tunnel` shows a temporary `trycloudflare.com` address, which changes whenever the tunnel restarts. Live pages use a WebSocket, which passes through it.
 
 ## Try the decoder
 
@@ -72,7 +94,7 @@ Run `relayscope live` beside it to keep the database current. Pages:
 - **Receipt** `/tx/:signature`: a donation's journey from donated to pooled, closed, swapped and paid out, with each payout line, the donation's share of it, and the epoch's checks.
 - **Epoch, config and address** pages, and **Checks** `/checks`, which explains what each check proves.
 
-The JSON API is under `/api/v1` (`overview`, `tx/:signature`, `epoch/:config/:mint/:epoch`, `config/:id`, `address/:address`, `search?q=`, `checks`), and `/api/v1/stream` sends new donations as server-sent events (`?config=` for one config; a client that reconnects gets what it missed). Beneficiary names come from the operator's public API when `RELAYSCOPE_LABELS_URL` is set, and are always marked as labels rather than proof.
+The JSON API is under `/api/v1` (`overview`, `tx/:signature`, `epoch/:config/:mint/:epoch`, `config/:id`, `address/:address`, `search?q=`, `checks`), and new donations are pushed over a WebSocket (`/api/v1/live`) or server-sent events (`/api/v1/stream`), for every config or one; a client that reconnects gets what it missed. [API.md](docs/API.md) is the reference. Beneficiary names come from the operator's public API when `RELAYSCOPE_LABELS_URL` is set, and are always marked as labels rather than proof.
 
 ## Show donations on stream
 

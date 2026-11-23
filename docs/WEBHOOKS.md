@@ -105,7 +105,7 @@ node examples/webhook-receiver/receiver.mjs --self-test
 - A failed delivery is retried after 5 seconds, 30 seconds, 2 minutes, 10 minutes, 30 minutes, 1 hour, 2 hours, 4 hours, 6 hours and 8 hours: 11 attempts over about 22 hours, then it is marked failed.
 - `410 Gone` stops the retries for that event at once.
 - Events can arrive out of order, especially after retries. Use `slot` to order them.
-- The outbox lives in the same SQLite database, so deliveries survive a restart and continue where they stopped.
+- The outbox lives in the same SQLite database, so deliveries survive a restart and continue where they stopped. The same goes for finding events: after a stretch of running `serve` without `--webhooks`, the next start with it sends what was stored in between.
 
 ## Config file
 

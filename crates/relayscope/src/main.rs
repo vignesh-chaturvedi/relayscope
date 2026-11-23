@@ -113,10 +113,11 @@ enum Command {
     },
     /// Serve the JSON API, a live feed of new donations and the web app.
     Serve {
-        #[arg(long, default_value = "127.0.0.1:8790")]
+        /// Address to listen on. The Docker image sets 0.0.0.0:8790.
+        #[arg(long, env = "RELAYSCOPE_LISTEN", default_value = "127.0.0.1:8790")]
         listen: std::net::SocketAddr,
         /// The built web app.
-        #[arg(long, default_value = "web/dist")]
+        #[arg(long, env = "RELAYSCOPE_WEB", default_value = "web/dist")]
         web: PathBuf,
         /// Base URL of the operator's public API, for beneficiary names. Unset turns labels off.
         #[arg(long, env = "RELAYSCOPE_LABELS_URL")]
