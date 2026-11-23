@@ -11,6 +11,38 @@ pub struct Report {
     pub failures: u64,
 }
 
+/// A one-line summary, for the live loop.
+pub struct Summary {
+    pub epochs: u64,
+    pub failures: u64,
+    pub pending: u64,
+}
+
+/// Runs every check, stores the results, and counts failures and waiting epochs.
+pub fn quick(store: &mut Store) -> Result<Summary> {
+    let epochs = store.load_epochs()?;
+    let now = now();
+    let results: Vec<(&EpochData, Vec<CheckResult>)> =
+        epochs.iter().map(|e| (e, reconcile(e, now))).collect();
+    store.write_checks(&results)?;
+    let c = store.completeness()?;
+    let mut failures = u64::from(!(c.history_complete && c.queued == 0 && c.decode_failures == 0));
+    let mut pending = 0;
+    for (_, checks) in &results {
+        failures += checks.iter().filter(|r| r.outcome == Outcome::Fail).count() as u64;
+        pending += u64::from(
+            checks
+                .iter()
+                .any(|r| r.check == Check::Timing && r.outcome == Outcome::Pending),
+        );
+    }
+    Ok(Summary {
+        epochs: epochs.len() as u64,
+        failures,
+        pending,
+    })
+}
+
 fn now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -59,7 +91,7 @@ pub fn run(store: &mut Store, show: usize) -> Result<Report> {
     let c = store.completeness()?;
     let complete = c.history_complete && c.queued == 0 && c.decode_failures == 0;
     println!(
-        "C8 completeness       {}: {} signatures listed back to the program's first transaction{}, {} queued, {} decode failures",
+        "C8 completeness       {}: {} signatures listed back to the program's first transaction{}, {} queued, {} decode failures, {} streamed and awaiting finalization",
         if complete { "pass" } else { "FAIL" },
         group(c.listed),
         if c.history_complete {
@@ -68,7 +100,8 @@ pub fn run(store: &mut Store, show: usize) -> Result<Report> {
             " (listing not finished)"
         },
         group(c.queued),
-        group(c.decode_failures)
+        group(c.decode_failures),
+        group(c.provisional)
     );
 
     // Counts per check and outcome.

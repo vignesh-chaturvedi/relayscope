@@ -24,3 +24,7 @@ rusqlite.workspace = true
 zstd.workspace = true
 futures.workspace = true
 dotenvy.workspace = true
+gapless.workspace = true
+tokio-tungstenite.workspace = true
+rustls.workspace = true
+bs58.workspace = true

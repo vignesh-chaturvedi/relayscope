@@ -29,3 +29,6 @@ rusqlite = { version = "0.43", features = ["bundled", "fallible_uint"] }
 zstd = "0.14"
 futures = "0.3"
 dotenvy = "0.15"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-webpki-roots"] }
+gapless = { git = "https://github.com/vignesh-chaturvedi/gapless", rev = "16ca0de955fc19e4bacb79c92b25fe8af10a598e" }

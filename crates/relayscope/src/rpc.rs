@@ -154,13 +154,18 @@ impl Rpc {
     /// `getTransaction` at finalized commitment, in the format
     /// [`relayscope_core::TxView::from_rpc_json`] reads.
     pub async fn transaction(&self, signature: &str) -> Result<Value> {
+        self.transaction_at(signature, "finalized").await
+    }
+
+    /// `getTransaction` at the given commitment (`confirmed` or `finalized`).
+    pub async fn transaction_at(&self, signature: &str, commitment: &str) -> Result<Value> {
         let result = self
             .call(
                 "getTransaction",
                 json!([signature, {
                     "encoding": "json",
                     "maxSupportedTransactionVersion": 0,
-                    "commitment": "finalized",
+                    "commitment": commitment,
                 }]),
             )
             .await?;
@@ -206,6 +211,22 @@ impl Rpc {
                 })
             })
             .collect()
+    }
+
+    /// The current slot at `confirmed` commitment.
+    pub async fn current_slot(&self) -> Result<u64> {
+        self.call("getSlot", json!([{ "commitment": "confirmed" }]))
+            .await?
+            .as_u64()
+            .context("getSlot did not return a number")
+    }
+
+    /// The highest slot the cluster has finalized.
+    pub async fn finalized_slot(&self) -> Result<u64> {
+        self.call("getSlot", json!([{ "commitment": "finalized" }]))
+            .await?
+            .as_u64()
+            .context("getSlot did not return a number")
     }
 
     /// Raw account data, or `None` if the account does not exist.

@@ -1,5 +1,6 @@
 mod backfill;
 mod idl;
+mod live;
 mod rpc;
 mod stats;
 mod store;
@@ -61,6 +62,51 @@ enum Command {
         #[arg(long, conflicts_with = "list_only")]
         skip_list: bool,
     },
+    /// Follow the program in real time through gapless and Solami's gRPC stream. Runs until
+    /// stopped. With --kill-test, cuts the stream on purpose, verifies the recovery against RPC,
+    /// writes a report and exits with 1 if anything was missed.
+    Live {
+        /// Where new transactions come from: a Solana RPC WebSocket, or Solami's gRPC stream
+        /// through gapless (needs a Solami plan with gRPC access).
+        #[arg(long, value_enum, default_value_t = LiveSource::Websocket)]
+        source: LiveSource,
+        /// WebSocket URL. Defaults to the RPC URL with https:// replaced by wss://.
+        #[arg(long, env = "RELAYSCOPE_WS_URL", hide_env_values = true)]
+        ws_url: Option<String>,
+        #[arg(long, env = "SOLAMI_API_KEY", hide_env_values = true)]
+        solami_api_key: Option<String>,
+        /// Override Solami's gRPC endpoint.
+        #[arg(long, env = "SOLAMI_GRPC_URL")]
+        grpc_url: Option<String>,
+        /// Seconds between finalizer passes.
+        #[arg(long, default_value_t = 30)]
+        finalize_every: u64,
+        /// Seconds between repair passes, which list new signatures from RPC and fetch any missed.
+        #[arg(long, default_value_t = 600)]
+        repair_every: u64,
+        #[arg(long)]
+        kill_test: bool,
+        /// Kill test: the least seconds live before the cut.
+        #[arg(long, default_value_t = 60)]
+        warmup: u64,
+        /// Kill test: transactions that must arrive live before the cut.
+        #[arg(long, default_value_t = 2)]
+        min_live: usize,
+        /// Kill test: the least seconds the source stays down.
+        #[arg(long, default_value_t = 300)]
+        offline: u64,
+        /// Kill test: transactions RPC must list during the outage before the WebSocket comes back.
+        #[arg(long, default_value_t = 2)]
+        min_gap: usize,
+        /// Kill test: the WebSocket comes back after this many seconds regardless.
+        #[arg(long, default_value_t = 3_600)]
+        max_offline: u64,
+        /// Kill test: seconds to keep streaming after recovery, so the window finalizes.
+        #[arg(long, default_value_t = 90)]
+        settle: u64,
+        #[arg(long, default_value = "data/kill-tests")]
+        report_dir: PathBuf,
+    },
     /// Counts and totals from the database.
     Stats {
         /// Also list up to this many decode failures.
@@ -103,6 +149,12 @@ enum Command {
     },
 }
 
+#[derive(Clone, Copy, clap::ValueEnum)]
+enum LiveSource {
+    Websocket,
+    Gapless,
+}
+
 #[derive(Subcommand)]
 enum IdlCommand {
     /// Download the IDL and pin it, with its SHA-256.
@@ -124,6 +176,9 @@ enum IdlCommand {
 async fn main() -> Result<()> {
     // A local .env may hold RELAYSCOPE_RPC_URL and other settings. It is optional.
     dotenvy::dotenv().ok();
+    // More than one TLS crypto backend is linked in (gapless and the WebSocket client bring
+    // their own), so pick one explicitly.
+    let _ = rustls::crypto::ring::default_provider().install_default();
     let cli = Cli::parse();
     let rpc = Rpc::new(&cli.rpc_url, cli.rps);
 
@@ -167,6 +222,55 @@ async fn main() -> Result<()> {
                     eprintln!("run `relayscope stats` to see the decode failures");
                     std::process::exit(2);
                 }
+            }
+        }
+        Command::Live {
+            source,
+            ws_url,
+            solami_api_key,
+            grpc_url,
+            finalize_every,
+            repair_every,
+            kill_test,
+            warmup,
+            min_live,
+            offline,
+            min_gap,
+            max_offline,
+            settle,
+            report_dir,
+        } => {
+            let mut store = Store::open(&cli.db)?;
+            let source = match source {
+                LiveSource::Websocket => live::Source::WebSocket {
+                    url: ws_url.unwrap_or_else(|| {
+                        cli.rpc_url
+                            .replacen("https://", "wss://", 1)
+                            .replacen("http://", "ws://", 1)
+                    }),
+                },
+                LiveSource::Gapless => live::Source::Gapless {
+                    api_key: solami_api_key.context("--source gapless needs SOLAMI_API_KEY")?,
+                    grpc_url,
+                },
+            };
+            let options = live::LiveOptions {
+                source,
+                finalize_every: std::time::Duration::from_secs(finalize_every),
+                repair_every: std::time::Duration::from_secs(repair_every),
+                kill_test: kill_test.then(|| live::KillTestOptions {
+                    warmup: std::time::Duration::from_secs(warmup),
+                    min_live,
+                    offline: std::time::Duration::from_secs(offline),
+                    min_gap,
+                    max_offline: std::time::Duration::from_secs(max_offline),
+                    settle: std::time::Duration::from_secs(settle),
+                    report_dir,
+                }),
+            };
+            let passed = live::run(&rpc, &mut store, options).await?;
+            if !passed {
+                std::process::exit(1);
             }
         }
         Command::Stats { failures } => {

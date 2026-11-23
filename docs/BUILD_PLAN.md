@@ -60,7 +60,7 @@ From a sample taken on 22 November 2026:
 ## Architecture
 
 ```
-Solami Yellowstone gRPC --> gapless (exactly-once, gap-aware) --+
+RPC WebSocket (logsSubscribe), or gapless over Solami gRPC -----+
 Solana RPC (backfill and verification) -------------------------+
                                                                 |
                                                                 v
@@ -101,7 +101,7 @@ relayscope/
 | --- | --- | --- |
 | Language | Rust 2024 edition, tokio | Same stack as gapless and hyperkeeper |
 | Decoding | `borsh` types written from the pinned IDL, checked against it by a test | No code generator in the build, and a failing test when the IDL changes |
-| Live data | `gapless` as a git dependency, Solami Yellowstone gRPC | Exactly-once delivery, resume after drops, RPC verification |
+| Live data | A `logsSubscribe` WebSocket on any RPC, or `gapless` over Solami's Yellowstone gRPC | The WebSocket works on a free RPC key; gapless replays gaps itself but needs a Solami plan with gRPC. Either way, an RPC repair pass fills anything missed |
 | Backfill | Solana JSON-RPC `getSignaturesForAddress` and `getTransaction` | Complete history from the program's first transaction |
 | Storage | SQLite through `rusqlite` (bundled), WAL mode | One file, no service to run, plenty for this volume |
 | Server | axum 0.8 | REST, server-sent events and static files from one binary |
@@ -213,13 +213,14 @@ What the phase decided:
 
 ### Phase 4: live ingestion
 
-- Subscribe to the program through gapless with Solami's Yellowstone gRPC.
-- Write at confirmed commitment for the live feed. Promote to finalized, then run checks.
-- Fall back to RPC polling if gRPC is unavailable, and log every fallback.
-- Run C8 hourly over the last window.
-- Kill test: cut the stream with gapless's controls during live traffic and show that nothing was missed.
+- Follow the program at confirmed commitment through a `logsSubscribe` WebSocket (the default, which works on a free Helius key) or through gapless over Solami's Yellowstone gRPC (`--source gapless`, which needs a Solami plan with gRPC access; the one available had none).
+- Store each new transaction as provisional, then re-fetch it at finalized and rewrite it.
+- Every 10 minutes, list the newest signatures from RPC and fetch anything the source missed, then run every check. If the source is down for over a minute, do this every minute instead. Every repair is logged.
+- Kill test: cut the source during live traffic, hold it down, and once it is back, look up every signature RPC lists for the window in the store.
 - **Done when:** a recorded kill test shows the recovered window verified against RPC with zero missing signatures.
-- **Commit:** `Stream new transactions live through gapless`
+- **Commit:** `Follow the program live, with repair and a kill test`
+
+**Status: done** on 23 November 2026. `relayscope live` runs on a free Helius WebSocket. The Solami key had no gRPC access, so `--source gapless` is built and tested but has not been run against mainnet. Every streamed transaction is converted to the RPC format and decoded by the backfill's code; a test proves all 18 fixtures decode identically by both paths. In the [kill test](kill-tests/2026-11-23-websocket.md), the WebSocket was cut for 24 minutes while 5 transactions landed. The repair pass stored all 5 (one during the outage, four on reconnecting), nothing was missing, and transactions that arrived live reached the store about 1 second after their block. The live loop's scheduled checks reported 0 failures throughout.
 
 ### Phase 5: API and web
 
@@ -274,7 +275,7 @@ What the phase decided:
 | The program is upgraded and the IDL changes | Weekly IDL check in CI. Decoders are keyed by event name and fail loudly on unknown discriminators. |
 | Legacy instructions in old history | Decode both payout generations from Phase 1. Fixtures include at least one legacy payout. |
 | Public RPC rate limits during backfill | A shared rate limit, retries with backoff, and a resumable queue. Any archival endpoint can be swapped in with `RELAYSCOPE_RPC_URL`. |
-| Solami's gRPC plan allows two streams | Relayscope uses one. The gapless handoff patch needs the second only for a few seconds after a recovery. |
+| The live source drops transactions or goes down | The repair pass lists the newest signatures from RPC every 10 minutes (every minute while the source is down) and fetches anything missing. The kill test proves this end to end. |
 | How fees and tips combine is not fully documented | C5 and C6 stay informational until Phase 3 settles the rule from history. |
 | Donor messages can contain links or spam | The overlay strips links and caps length by default, and messages can be turned off. |
 | Bridge donations start on another chain | Only the Solana leg is proven. The source transaction is shown as a label when the operator's public transfer API returns it. |

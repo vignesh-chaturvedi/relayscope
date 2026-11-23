@@ -6,7 +6,7 @@ Relayscope follows every donation from the donor's transaction to the payout, ch
 
 An independent, unofficial project.
 
-**Status:** phases 1 to 3 of 7 are done: a decoder for every instruction, event and account in the program, its full history indexed into SQLite (243,023 transactions, 0 decode failures), and every epoch reconciled (49,159 epochs, 0 failed checks). See the [build plan](docs/BUILD_PLAN.md) and the [methodology](docs/METHODOLOGY.md).
+**Status:** phases 1 to 4 of 7 are done: a decoder for every instruction, event and account in the program, its full history indexed into SQLite (243,023 transactions, 0 decode failures), every epoch reconciled (49,159 epochs, 0 failed checks), and live following with a recorded kill test. See the [build plan](docs/BUILD_PLAN.md) and the [methodology](docs/METHODOLOGY.md).
 
 ## Try the decoder
 
@@ -38,6 +38,23 @@ cargo run --release -p relayscope -- stats
 # After a decoder change, rebuild every table from the stored raw transactions, without refetching
 cargo run --release -p relayscope -- reindex
 ```
+
+## Follow it live
+
+```bash
+# Follow the program through a WebSocket on your RPC (a free Helius key works).
+# Each new transaction is stored at once and rewritten when finalized. Every 10 minutes a
+# repair pass fetches anything the WebSocket missed, then every check runs again.
+cargo run --release -p relayscope -- live
+
+# Prove recovery: cut the source for 5 minutes, then check every signature RPC lists for the
+# window against the store, and write a report
+cargo run --release -p relayscope -- live --kill-test --offline 300
+```
+
+`--source gapless` uses Solami's Yellowstone gRPC stream through gapless instead, which needs a Solami plan with gRPC access.
+
+In the first [kill test](docs/kill-tests/2026-11-23-websocket.md), the WebSocket was down for 24 minutes while 5 transactions landed. All 5 were recovered and nothing was missing. Live transactions reached the store about 1 second after their block.
 
 ## Reconcile every epoch
 

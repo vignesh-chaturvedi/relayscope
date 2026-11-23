@@ -48,6 +48,9 @@ const UNFETCHED: i64 = 0;
 const FETCHED: i64 = 1;
 /// Fetched and stored raw, but the decoder rejected it. `reindex` retries these.
 const DECODE_FAILED: i64 = 2;
+/// Seen on the live stream at `confirmed` commitment and stored, but not yet re-fetched at
+/// `finalized`. The finalizer turns these into `FETCHED`.
+const PROVISIONAL: i64 = 3;
 
 const MIGRATIONS: &[&str] = &[
     // 1: initial schema
@@ -357,6 +360,81 @@ impl Store {
         )?)
     }
 
+    /// Writes a transaction seen on the live stream and marks it provisional. A transaction
+    /// already stored at `finalized` commitment is left as it is.
+    pub fn write_streamed(
+        &mut self,
+        row: &SignatureRow,
+        item: Fetched,
+        origin: Origin,
+    ) -> Result<()> {
+        let status: Option<i64> = self
+            .conn
+            .query_row(
+                "SELECT status FROM signatures WHERE signature = ?1",
+                [&row.signature],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if status == Some(FETCHED) {
+            return Ok(());
+        }
+        self.insert_signatures(std::slice::from_ref(row))?;
+        let decoded = item.decoded.is_ok();
+        self.write_fetched(&[item], origin)?;
+        if decoded {
+            self.conn.execute(
+                "UPDATE signatures SET status = ?2 WHERE signature = ?1",
+                params![row.signature, PROVISIONAL],
+            )?;
+        }
+        Ok(())
+    }
+
+    /// Whether a transaction is stored, finalized or provisional.
+    pub fn is_stored(&self, signature: &str) -> Result<bool> {
+        let status: Option<i64> = self
+            .conn
+            .query_row(
+                "SELECT status FROM signatures WHERE signature = ?1",
+                [signature],
+                |r| r.get(0),
+            )
+            .optional()?;
+        Ok(matches!(status, Some(FETCHED | PROVISIONAL)))
+    }
+
+    /// A stored transaction's block time, once known.
+    pub fn block_time(&self, signature: &str) -> Result<Option<i64>> {
+        Ok(self
+            .conn
+            .query_row(
+                "SELECT block_time FROM transactions WHERE signature = ?1",
+                [signature],
+                |r| r.get(0),
+            )
+            .optional()?
+            .flatten())
+    }
+
+    /// Whether any transaction is waiting to be finalized.
+    pub fn has_provisional(&self) -> Result<bool> {
+        Ok(self.conn.query_row(
+            "SELECT EXISTS (SELECT 1 FROM signatures WHERE status = ?1)",
+            [PROVISIONAL],
+            |r| r.get(0),
+        )?)
+    }
+
+    /// Provisional signatures at or below `slot`, oldest first.
+    pub fn provisional_up_to(&self, slot: u64) -> Result<Vec<String>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT signature FROM signatures WHERE status = ?1 AND slot <= ?2 ORDER BY slot, signature",
+        )?;
+        let rows = stmt.query_map(params![PROVISIONAL, int(slot, "slot")?], |r| r.get(0))?;
+        Ok(rows.collect::<Result<_, _>>()?)
+    }
+
     /// Writes fetched transactions: raw JSON, and what each decoded to or why it failed.
     pub fn write_fetched(&mut self, items: &[Fetched], origin: Origin) -> Result<()> {
         let tx = self.conn.transaction()?;
@@ -429,6 +507,8 @@ pub struct Completeness {
     pub history_complete: bool,
     pub listed: u64,
     pub queued: u64,
+    /// Seen live, waiting to be re-fetched at `finalized`. Not a failure.
+    pub provisional: u64,
     pub decode_failures: u64,
 }
 
@@ -1041,6 +1121,11 @@ impl Store {
             queued: c.query_row(
                 "SELECT COUNT(*) FROM signatures WHERE status = ?1",
                 [UNFETCHED],
+                |r| r.get(0),
+            )?,
+            provisional: c.query_row(
+                "SELECT COUNT(*) FROM signatures WHERE status = ?1",
+                [PROVISIONAL],
                 |r| r.get(0),
             )?,
             decode_failures: c
