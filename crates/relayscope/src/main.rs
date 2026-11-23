@@ -8,6 +8,7 @@ mod server;
 mod stats;
 mod store;
 mod verify;
+mod webhooks;
 
 use std::path::PathBuf;
 
@@ -120,6 +121,9 @@ enum Command {
         /// Base URL of the operator's public API, for beneficiary names. Unset turns labels off.
         #[arg(long, env = "RELAYSCOPE_LABELS_URL")]
         labels_url: Option<String>,
+        /// A TOML file of webhook endpoints. Unset sends no webhooks.
+        #[arg(long, env = "RELAYSCOPE_WEBHOOKS")]
+        webhooks: Option<PathBuf>,
     },
     /// Counts and totals from the database.
     Stats {
@@ -145,6 +149,11 @@ enum Command {
         #[command(subcommand)]
         command: IdlCommand,
     },
+    /// Webhook secrets and delivery status.
+    Webhooks {
+        #[command(subcommand)]
+        command: WebhooksCommand,
+    },
     /// Fetch a transaction and decode everything the relay did in it.
     Tx {
         signature: String,
@@ -167,6 +176,14 @@ enum Command {
 enum LiveSource {
     Websocket,
     Gapless,
+}
+
+#[derive(Subcommand)]
+enum WebhooksCommand {
+    /// Print a new random signing secret for an endpoint.
+    Secret,
+    /// Show deliveries by endpoint, and recent failures.
+    Status,
 }
 
 #[derive(Subcommand)]
@@ -291,7 +308,11 @@ async fn main() -> Result<()> {
             listen,
             web,
             labels_url,
+            webhooks,
         } => {
+            let webhooks = webhooks
+                .map(|path| webhooks::Config::load(&path))
+                .transpose()?;
             // Apply any pending migrations before serving read-only.
             drop(Store::open(&cli.db)?);
             server::run(server::ServeOptions {
@@ -299,8 +320,22 @@ async fn main() -> Result<()> {
                 db: cli.db.clone(),
                 web,
                 labels_url,
+                webhooks,
             })
             .await?;
+        }
+        Command::Webhooks {
+            command: WebhooksCommand::Secret,
+        } => println!("{}", webhooks::new_secret()?),
+        Command::Webhooks {
+            command: WebhooksCommand::Status,
+        } => {
+            drop(Store::open(&cli.db)?);
+            let conn = rusqlite::Connection::open_with_flags(
+                &cli.db,
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            )?;
+            webhooks::print_status(&conn)?;
         }
         Command::Stats { failures } => {
             let store = Store::open(&cli.db)?;

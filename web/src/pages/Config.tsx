@@ -19,6 +19,9 @@ export default function ConfigPage() {
             <p className="meta muted small mono break">
               {c.config_id} · {c.base58}
             </p>
+            <p>
+              <Link to={`/config/${c.config_id}/overlay`}>Set up a stream overlay for this config</Link>
+            </p>
           </div>
 
           <div className="two-col">

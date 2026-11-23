@@ -83,16 +83,17 @@ relayscope/
   Cargo.toml                 workspace
   crates/
     relayscope-core/         decoding, data model, reconciliation math. No network, heavily tested.
-    relayscope/              the binary: backfill, live, verify, serve, idl subcommands
+    relayscope/              the binary: backfill, live, verify, serve, webhooks, idl subcommands
   idl/
     donation_relay.json      pinned copy of the on-chain IDL, with its SHA-256
   fixtures/                  real mainnet transactions, as JSON-RPC returns them
     decoded/                 what each one must decode to (golden files)
-  web/                       Vite + React + TypeScript front end
+  web/                       Vite + React + TypeScript front end, and the stream overlay
+  examples/                  a webhook receiver that verifies signatures, and a webhooks file
   docs/
     BUILD_PLAN.md            this file
     METHODOLOGY.md           every check, with its formula
-    API.md                   REST, SSE and webhook reference
+    WEBHOOKS.md              webhook events, signatures and retries
 ```
 
 ### Technology
@@ -248,10 +249,12 @@ What the phase decided:
 - **Done when:** an OBS scene shows a real mainnet donation within 3 seconds of confirmation, and the sample receiver verifies a delivered webhook.
 - **Commit:** `Add the OBS overlay and signed webhooks`
 
+**Status: done** on 23 November 2026. The overlay at `/overlay/:config` is a page with no framework (about 7 kB) that follows `/api/v1/stream`. Each config page links to a setup page with the options, a copyable URL, a scaled preview and a test-alert button. Test alerts reach only overlays opened with the same random key, and the setup page says how many are open. A real mainnet donation (0.115 SOL from pump.fun's fee program, transaction `3iQy8DMr…dbag4Bop`) reached an open overlay 2.0 seconds after its block time and was on screen 11 ms later. That ran in Chromium, the engine behind OBS's browser source; OBS itself was not on the test machine. Webhooks follow the Standard Webhooks spec and pass its published example. On mainnet, the sample receiver verified 5 real events (that donation, then its epoch's close and payout, and one more close and payout), each delivered on the first attempt about 1 second after its block. Two things the real traffic showed: pump.fun's fee program writes two addresses into the donation message, so the overlay shows messages only for donations people make directly; and a browser allows 6 open connections to one host over HTTP/1.1, which a seventh overlay or live page in the same browser exceeds, so Phase 7 serves over HTTP/2.
+
 ### Phase 7: ship
 
 - Multi-stage Dockerfile: Rust release build plus the built web assets in one small image.
-- Deploy on an always-on host. A link must answer in under a second, with no cold start.
+- Deploy on an always-on host behind a TLS proxy that speaks HTTP/2, so live pages and overlays do not run into the browser's limit of 6 connections per host. A link must answer in under a second, with no cold start.
 - CI: format, clippy, tests, a web build, and a weekly `relayscope idl check` that fails if the program's IDL changes.
 - README with a GIF, a quickstart (`docker compose up`), the methodology and the API reference.
 - A 60-second demo video: a live donation arriving in the overlay, then its receipt page and checks.

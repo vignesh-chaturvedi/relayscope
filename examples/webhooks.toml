@@ -1,0 +1,17 @@
+# Webhook endpoints for `relayscope serve --webhooks examples/webhooks.toml`.
+# Create a secret for each endpoint with `relayscope webhooks secret`.
+
+# Optional: this site's public address, so payloads link to receipt and epoch pages.
+# public_url = "https://relayscope.example"
+
+[[endpoint]]
+# The sample receiver in examples/webhook-receiver.
+url = "http://127.0.0.1:8791/"
+# Read the secret from an environment variable, so this file can be committed. Use
+# `secret = "whsec_..."` instead to keep it in the file.
+secret_env = "RELAYSCOPE_WEBHOOK_SECRET"
+# Optional: only these events. The default is all four:
+# donation.made, epoch.closed, epoch.settled and check.failed.
+# events = ["donation.made", "epoch.settled"]
+# Optional: only these configs, by ID in hex or base58. The default is every config.
+# configs = ["0x..."]

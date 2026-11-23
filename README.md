@@ -6,7 +6,7 @@ Relayscope follows every donation from the donor's transaction to the payout, ch
 
 An independent, unofficial project.
 
-**Status:** phases 1 to 5 of 7 are done: a decoder for every instruction, event and account in the program, its full history indexed into SQLite (243,023 transactions, 0 decode failures), every epoch reconciled (49,159 epochs, 0 failed checks), live following with a recorded kill test, and a web app with a receipt for every donation. See the [build plan](docs/BUILD_PLAN.md) and the [methodology](docs/METHODOLOGY.md).
+**Status:** phases 1 to 6 of 7 are done: a decoder for every instruction, event and account in the program, its full history indexed into SQLite (243,023 transactions, 0 decode failures), every epoch reconciled (49,159 epochs, 0 failed checks), live following with a recorded kill test, a web app with a receipt for every donation, an OBS overlay that showed a real donation 2 seconds after its block, and signed webhooks. See the [build plan](docs/BUILD_PLAN.md) and the [methodology](docs/METHODOLOGY.md).
 
 ## Try the decoder
 
@@ -72,7 +72,32 @@ Run `relayscope live` beside it to keep the database current. Pages:
 - **Receipt** `/tx/:signature`: a donation's journey from donated to pooled, closed, swapped and paid out, with each payout line, the donation's share of it, and the epoch's checks.
 - **Epoch, config and address** pages, and **Checks** `/checks`, which explains what each check proves.
 
-The JSON API is under `/api/v1` (`overview`, `tx/:signature`, `epoch/:config/:mint/:epoch`, `config/:id`, `address/:address`, `search?q=`, `checks`), and `/api/v1/stream` sends new donations as server-sent events. Beneficiary names come from the operator's public API when `RELAYSCOPE_LABELS_URL` is set, and are always marked as labels rather than proof.
+The JSON API is under `/api/v1` (`overview`, `tx/:signature`, `epoch/:config/:mint/:epoch`, `config/:id`, `address/:address`, `search?q=`, `checks`), and `/api/v1/stream` sends new donations as server-sent events (`?config=` for one config; a client that reconnects gets what it missed). Beneficiary names come from the operator's public API when `RELAYSCOPE_LABELS_URL` is set, and are always marked as labels rather than proof.
+
+## Show donations on stream
+
+Every config page links to an overlay setup page, `/config/:config/overlay`. It builds a URL for an OBS **Browser** source, shows a live preview, and sends test alerts to place the alert in a scene.
+
+The overlay, `/overlay/:config`, is a transparent page with no framework (about 7 kB). Each new donation shows as a card with the amount, the donor or the program that sent it, and the donor's message. Its options live in the URL:
+
+| Option | Default | |
+| --- | --- | --- |
+| `messages=0` | on | Hide donor messages. When shown, links and hidden characters are removed. Donations made by other programs never show one, since a program writes its own data there. |
+| `length=` | 120 | Longest message, 20 to 280 characters, cut with an ellipsis. |
+| `seconds=` | 8 | How long each alert stays up, 3 to 30. When alerts queue up, each shows for half as long. |
+| `automatic=0` | on | Skip donations other programs make, such as pump.fun creator fees, and show only people donating. |
+| `theme=light` | dark | A light card instead of a dark one. |
+| `key=` | | The random key the setup page makes, so only you can send test alerts to your overlay. |
+
+## Send webhooks
+
+```bash
+relayscope webhooks secret                      # a signing secret for your endpoint
+relayscope serve --webhooks webhooks.toml       # see examples/webhooks.toml
+relayscope webhooks status                      # delivered, pending and failed, by endpoint
+```
+
+Relayscope sends `donation.made`, `epoch.closed`, `epoch.settled` and `check.failed` to each endpoint that subscribed. Requests are signed as the [Standard Webhooks](https://www.standardwebhooks.com) spec describes, every event has a stable ID, and failed deliveries are retried with backoff for about 22 hours from an outbox that survives restarts. [WEBHOOKS.md](docs/WEBHOOKS.md) has the payloads and how to verify them, and [`examples/webhook-receiver`](examples/webhook-receiver/receiver.mjs) is a receiver with no dependencies that checks every signature.
 
 ## Reconcile every epoch
 

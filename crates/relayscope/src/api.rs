@@ -133,6 +133,22 @@ pub fn donations_after(
     )
 }
 
+/// Donations to one config at or after `slot`, oldest first, for a feed that reconnects.
+pub fn config_donations_since(
+    conn: &Connection,
+    tokens: &Tokens,
+    config_id: &str,
+    slot: i64,
+    limit: i64,
+) -> Result<Vec<DonationBrief>> {
+    donations(
+        conn,
+        tokens,
+        "WHERE d.slot >= ?2 AND d.config_id = ?1 ORDER BY d.slot, d.signature, d.ordinal LIMIT ?3",
+        &[&config_id, &slot, &limit],
+    )
+}
+
 pub fn latest_slot(conn: &Connection) -> Result<i64> {
     Ok(
         conn.query_row("SELECT COALESCE(MAX(slot), 0) FROM donations", [], |r| {

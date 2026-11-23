@@ -167,4 +167,17 @@ export async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export async function post<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`/api/v1${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.error ?? `The server answered ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+}
+
 export const epochPath = (p: Pool) => `/epoch/${p.config_id}/${p.mint}/${p.epoch}`;

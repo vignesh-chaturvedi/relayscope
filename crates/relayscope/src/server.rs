@@ -1,5 +1,5 @@
 //! `relayscope serve`: the JSON API, a live feed of new donations over server-sent events,
-//! and the web app.
+//! the stream overlay, signed webhooks when configured, and the web app.
 //!
 //! Every request opens its own read-only SQLite connection on a blocking thread, so the
 //! server can run beside `relayscope live`, which writes to the same database.
@@ -14,11 +14,11 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result};
 use axum::Router;
 use axum::extract::{Path as UrlPath, Query, Request, State};
-use axum::http::{HeaderValue, StatusCode};
+use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::middleware::{self, Next};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Json, Response};
-use axum::routing::get;
+use axum::routing::{get, post};
 use futures::Stream;
 use futures::StreamExt;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
@@ -29,6 +29,7 @@ use tokio_stream::wrappers::BroadcastStream;
 use tower_http::services::{ServeDir, ServeFile};
 
 use crate::api::{self, DonationBrief, Tokens};
+use crate::webhooks;
 
 pub struct ServeOptions {
     pub listen: SocketAddr,
@@ -36,14 +37,30 @@ pub struct ServeOptions {
     pub web: PathBuf,
     /// Base URL of the operator's public API, for charity names. `None` disables labels.
     pub labels_url: Option<String>,
+    /// Webhook endpoints. `None` sends no webhooks.
+    pub webhooks: Option<webhooks::Config>,
 }
+
+/// What the live feed carries: stored donations, and test alerts for one overlay.
+#[derive(Clone)]
+enum FeedItem {
+    Donation(Box<DonationBrief>),
+    Test { config_id: String, key: String },
+}
+
+/// An overlay's config ID and test key.
+type OverlayKey = (String, String);
 
 struct AppState {
     db: PathBuf,
     tokens: RwLock<Tokens>,
-    feed: broadcast::Sender<DonationBrief>,
+    feed: broadcast::Sender<FeedItem>,
     labels: Arc<Labels>,
     overview: Mutex<Option<(Instant, Value)>>,
+    /// Open overlays by config ID and test key, so a test alert can say who saw it.
+    overlays: Mutex<HashMap<OverlayKey, usize>>,
+    /// When each test key last sent a test alert.
+    tests_sent: Mutex<HashMap<String, Instant>>,
 }
 
 type Shared = Arc<AppState>;
@@ -76,6 +93,21 @@ fn not_found(what: &str) -> ApiError {
     ApiError(StatusCode::NOT_FOUND, format!("{what} not found"))
 }
 
+/// A config ID in hex or base58, as hex.
+fn config_hex(id: &str) -> Result<String, ApiError> {
+    id.parse::<relayscope_core::Bytes32>()
+        .map(|b| b.to_hex())
+        .map_err(|_| ApiError(StatusCode::BAD_REQUEST, "not a config ID".into()))
+}
+
+/// Test keys are random strings the setup page makes, so only the streamer can send tests.
+fn valid_key(key: &str) -> bool {
+    (16..=64).contains(&key.len())
+        && key
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
+
 /// Runs a query on a blocking thread with its own read-only connection.
 async fn query<T: Send + 'static>(
     state: &Shared,
@@ -104,9 +136,20 @@ pub async fn run(options: ServeOptions) -> Result<()> {
         tokens: RwLock::new(tokens),
         feed,
         overview: Mutex::new(None),
+        overlays: Mutex::new(HashMap::new()),
+        tests_sent: Mutex::new(HashMap::new()),
     });
     tokio::spawn(watch_donations(state.clone()));
     tokio::spawn(refresh_tokens(state.clone()));
+    let endpoints = options.webhooks.as_ref().map_or(0, |w| w.endpoints.len());
+    if let Some(config) = options.webhooks {
+        let db = options.db.clone();
+        tokio::spawn(async move {
+            if let Err(error) = webhooks::run(db, Arc::new(config)).await {
+                eprintln!("webhooks stopped: {error:#}");
+            }
+        });
+    }
 
     let index = options.web.join("index.html");
     let app = Router::new()
@@ -120,19 +163,29 @@ pub async fn run(options: ServeOptions) -> Result<()> {
         .route("/api/v1/search", get(search))
         .route("/api/v1/checks", get(checks))
         .route("/api/v1/stream", get(stream))
+        .route("/api/v1/overlay/test", post(overlay_test))
+        .route_service(
+            "/overlay/{config}",
+            ServeFile::new(options.web.join("overlay.html")),
+        )
         .fallback_service(ServeDir::new(&options.web).fallback(ServeFile::new(index)))
         .layer(middleware::from_fn(timing))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(options.listen).await?;
     eprintln!(
-        "serving on http://{} (web app from {}, labels {})",
+        "serving on http://{} (web app from {}, labels {}, webhooks to {endpoints} {})",
         options.listen,
         options.web.display(),
         if options.labels_url.is_some() {
             "on"
         } else {
             "off"
+        },
+        if endpoints == 1 {
+            "endpoint"
+        } else {
+            "endpoints"
         }
     );
     axum::serve(listener, app).await?;
@@ -150,7 +203,7 @@ async fn timing(request: Request, next: Next) -> Response {
     response
 }
 
-/// Polls for new donations every second and broadcasts them to live-feed subscribers.
+/// Polls for new donations twice a second and broadcasts them to live-feed subscribers.
 async fn watch_donations(state: Shared) {
     let mut last_slot: i64 = match query(&state, |c, _| api::latest_slot(c)).await {
         Ok(slot) => slot,
@@ -161,7 +214,7 @@ async fn watch_donations(state: Shared) {
     };
     // Donations already sent at the newest slot, so a slot is never sent twice.
     let mut sent_at_last: HashSet<(String, i64)> = HashSet::new();
-    let mut tick = tokio::time::interval(Duration::from_secs(1));
+    let mut tick = tokio::time::interval(Duration::from_millis(500));
     loop {
         tick.tick().await;
         let from = last_slot - 1;
@@ -178,7 +231,7 @@ async fn watch_donations(state: Shared) {
                 sent_at_last.clear();
             }
             sent_at_last.insert(key);
-            let _ = state.feed.send(d);
+            let _ = state.feed.send(FeedItem::Donation(Box::new(d)));
         }
     }
 }
@@ -260,10 +313,7 @@ async fn config(
     State(state): State<Shared>,
     UrlPath(config): UrlPath<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let hex = config
-        .parse::<relayscope_core::Bytes32>()
-        .map(|b| b.to_hex())
-        .map_err(|_| ApiError(StatusCode::BAD_REQUEST, "not a config ID".into()))?;
+    let hex = config_hex(&config)?;
     let id = hex.clone();
     let c = query(&state, move |c, t| api::config(c, t, &hex))
         .await?
@@ -288,10 +338,7 @@ async fn label(
     State(state): State<Shared>,
     UrlPath(config): UrlPath<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let hex = config
-        .parse::<relayscope_core::Bytes32>()
-        .map(|b| b.to_hex())
-        .map_err(|_| ApiError(StatusCode::BAD_REQUEST, "not a config ID".into()))?;
+    let hex = config_hex(&config)?;
     Ok(Json(json!({ "label": state.labels.get(&hex).await })))
 }
 
@@ -320,29 +367,167 @@ async fn checks(State(state): State<Shared>) -> Result<Json<Value>, ApiError> {
 #[derive(Deserialize)]
 struct StreamParams {
     config: Option<String>,
+    /// An overlay's test key, to receive its test alerts.
+    key: Option<String>,
 }
 
-/// New donations as they are stored, as `donation` events. `?config=` limits it to one config.
+/// Keeps the count of open overlays right: one is counted while its stream is open.
+struct OverlayGuard {
+    state: Shared,
+    key: OverlayKey,
+}
+
+impl OverlayGuard {
+    fn new(state: &Shared, key: OverlayKey) -> Self {
+        *state
+            .overlays
+            .lock()
+            .expect("overlays lock")
+            .entry(key.clone())
+            .or_default() += 1;
+        Self {
+            state: state.clone(),
+            key,
+        }
+    }
+}
+
+impl Drop for OverlayGuard {
+    fn drop(&mut self) {
+        let mut overlays = self.state.overlays.lock().expect("overlays lock");
+        if let Some(n) = overlays.get_mut(&self.key) {
+            *n -= 1;
+            if *n == 0 {
+                overlays.remove(&self.key);
+            }
+        }
+    }
+}
+
+fn donation_event(d: &DonationBrief) -> Option<Event> {
+    let data = serde_json::to_string(d).ok()?;
+    Some(
+        Event::default()
+            .event("donation")
+            .id(d.slot.to_string())
+            .data(data),
+    )
+}
+
+/// New donations as they are stored, as `donation` events whose ID is the slot. `?config=`
+/// limits it to one config, and then a client that reconnects with `Last-Event-ID` first gets
+/// what it missed. `?key=` adds `test` events for that overlay.
 async fn stream(
     State(state): State<Shared>,
+    headers: HeaderMap,
     Query(params): Query<StreamParams>,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let config = params
-        .config
-        .and_then(|c| c.parse::<relayscope_core::Bytes32>().ok())
-        .map(|b| b.to_hex());
-    let events = BroadcastStream::new(state.feed.subscribe()).filter_map(move |item| {
-        let config = config.clone();
-        async move {
-            let d = item.ok()?;
-            if config.as_ref().is_some_and(|c| *c != d.pool.config_id) {
-                return None;
-            }
-            let data = serde_json::to_string(&d).ok()?;
-            Some(Ok(Event::default().event("donation").data(data)))
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, ApiError> {
+    // A bad config ID is refused, so a mistyped overlay URL never shows every donation.
+    let config = params.config.as_deref().map(config_hex).transpose()?;
+    let key = params.key.filter(|k| valid_key(k));
+    let guard = match (&config, &key) {
+        (Some(c), Some(k)) => Some(OverlayGuard::new(&state, (c.clone(), k.clone()))),
+        _ => None,
+    };
+    // Subscribe before reading what was missed, so nothing falls between the two.
+    let receiver = state.feed.subscribe();
+    let last_slot = headers
+        .get("last-event-id")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<i64>().ok());
+    let missed = match (&config, last_slot) {
+        (Some(c), Some(slot)) => {
+            let c = c.clone();
+            query(&state, move |conn, t| {
+                api::config_donations_since(conn, t, &c, slot, 20)
+            })
+            .await
+            .unwrap_or_default()
         }
+        _ => Vec::new(),
+    };
+    let replayed: HashSet<(String, i64)> = missed
+        .iter()
+        .map(|d| (d.signature.clone(), d.ordinal))
+        .collect();
+    let head = futures::stream::iter(
+        missed
+            .iter()
+            .filter_map(donation_event)
+            .map(Ok)
+            .collect::<Vec<_>>(),
+    );
+    let live = BroadcastStream::new(receiver).filter_map(move |item| {
+        let _open = &guard;
+        let event = match item {
+            Ok(FeedItem::Donation(d)) => {
+                let other_config = config.as_ref().is_some_and(|c| *c != d.pool.config_id);
+                if other_config || replayed.contains(&(d.signature.clone(), d.ordinal)) {
+                    None
+                } else {
+                    donation_event(&d)
+                }
+            }
+            Ok(FeedItem::Test { config_id, key: k })
+                if config.as_ref() == Some(&config_id) && key.as_ref() == Some(&k) =>
+            {
+                Some(Event::default().event("test").data("{}"))
+            }
+            _ => None,
+        };
+        async move { event.map(Ok) }
     });
-    Sse::new(events).keep_alive(KeepAlive::default())
+    Ok(Sse::new(head.chain(live)).keep_alive(KeepAlive::default()))
+}
+
+#[derive(Deserialize)]
+struct TestAlert {
+    config: String,
+    key: String,
+}
+
+/// Sends a test alert to the overlays open with this config and key, at most one every two
+/// seconds per key. Answers with how many overlays are open.
+async fn overlay_test(
+    State(state): State<Shared>,
+    Json(body): Json<TestAlert>,
+) -> Result<Json<Value>, ApiError> {
+    let config_id = config_hex(&body.config)?;
+    if !valid_key(&body.key) {
+        return Err(ApiError(
+            StatusCode::BAD_REQUEST,
+            "the key must be 16 to 64 letters, digits, - or _".into(),
+        ));
+    }
+    {
+        let now = Instant::now();
+        let mut sent = state.tests_sent.lock().expect("tests lock");
+        if sent
+            .get(&body.key)
+            .is_some_and(|at| now.duration_since(*at) < Duration::from_secs(2))
+        {
+            return Err(ApiError(
+                StatusCode::TOO_MANY_REQUESTS,
+                "wait a moment before sending another test alert".into(),
+            ));
+        }
+        if sent.len() > 1_000 {
+            sent.retain(|_, at| now.duration_since(*at) < Duration::from_secs(60));
+        }
+        sent.insert(body.key.clone(), now);
+    }
+    let overlays = state
+        .overlays
+        .lock()
+        .expect("overlays lock")
+        .get(&(config_id.clone(), body.key.clone()))
+        .copied()
+        .unwrap_or(0);
+    let _ = state.feed.send(FeedItem::Test {
+        config_id,
+        key: body.key,
+    });
+    Ok(Json(json!({ "overlays": overlays })))
 }
 
 /// Beneficiary names for a config, from the operator's public API. Shown as labels, never

@@ -6,6 +6,7 @@ import AddressPage from "./pages/Address";
 import ChecksPage from "./pages/Checks";
 import ConfigPage from "./pages/Config";
 import EpochPage from "./pages/Epoch";
+import OverlaySetupPage from "./pages/OverlaySetup";
 import OverviewPage from "./pages/Overview";
 import ReceiptPage from "./pages/Receipt";
 import "./styles.css";
@@ -100,6 +101,7 @@ function App() {
           <Route path="/tx/:signature" element={<ReceiptPage />} />
           <Route path="/epoch/:config/:mint/:epoch" element={<EpochPage />} />
           <Route path="/config/:config" element={<ConfigPage />} />
+          <Route path="/config/:config/overlay" element={<OverlaySetupPage />} />
           <Route path="/address/:address" element={<AddressPage />} />
           <Route path="/checks" element={<ChecksPage />} />
           <Route path="*" element={<NotFoundPage />} />

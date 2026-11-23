@@ -242,6 +242,30 @@ const MIGRATIONS: &[&str] = &[
         fetched_at INTEGER NOT NULL
     ) WITHOUT ROWID;
     "#,
+    // 4: the webhook outbox, and indexes for finding new events
+    r#"
+    CREATE INDEX transactions_indexed ON transactions (indexed_at);
+    CREATE INDEX checks_failed ON checks (outcome);
+    CREATE TABLE webhook_events (
+        id         TEXT PRIMARY KEY,
+        type       TEXT NOT NULL,
+        config_id  TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        payload    TEXT NOT NULL
+    ) WITHOUT ROWID;
+    CREATE TABLE webhook_deliveries (
+        event_id     TEXT NOT NULL,
+        endpoint     TEXT NOT NULL,
+        state        TEXT NOT NULL,
+        attempts     INTEGER NOT NULL,
+        next_at      INTEGER NOT NULL,
+        last_status  INTEGER,
+        last_error   TEXT,
+        delivered_at INTEGER,
+        PRIMARY KEY (event_id, endpoint)
+    ) WITHOUT ROWID;
+    CREATE INDEX webhook_deliveries_due ON webhook_deliveries (state, next_at);
+    "#,
 ];
 
 /// Tables holding what a transaction decoded to, cleared before it is rewritten.
@@ -291,6 +315,11 @@ impl Store {
     #[cfg(test)]
     pub(crate) fn connection(&self) -> &Connection {
         &self.conn
+    }
+
+    #[cfg(test)]
+    pub(crate) fn into_connection(self) -> Connection {
+        self.conn
     }
 
     /// A store holding every fixture, for tests elsewhere in the crate.
