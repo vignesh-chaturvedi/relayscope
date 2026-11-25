@@ -84,8 +84,6 @@ The fee must be one known rate applied to the whole epoch. The known rates are e
 
 All 48,715 paid epochs pass. 48,688 were charged a single known rate. The other 27 span a rate change, and for each of them Relayscope found a split of the donations between two known rates that reproduces the fee. The largest has 19 donations.
 
-The check does not yet compare each epoch's rate with the fee the operator's API stores for its config. That needs the API labels planned for phase 5.
-
 ### C6 tips
 
 If no donor in the epoch declared a tip, there is no tip line. Otherwise the tip lines equal `settled * declared_tips / gross_epoch_amount`, within one unit per donation.
