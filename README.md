@@ -4,9 +4,9 @@ A real-time tracker for the Donation Relay program on Solana (`RLAYHr9TRFcKB2ubY
 
 Relayscope follows every donation from the donor's transaction to the payout, checks that every epoch balances, and gives streamers and integrators a live feed, an OBS overlay and signed webhooks.
 
-![A real donation: its stream alert, then its receipt from donated to paid out](docs/media/relayscope.gif)
+[![A real donation: its stream alert, then its receipt from donated to paid out](docs/media/relayscope.gif)](https://vignesh-chaturvedi.github.io/relayscope/)
 
-[Watch the 45-second demo](docs/media/relayscope-demo.mp4): one real mainnet donation, from the stream alert to the payout and the checks.
+[Watch the 45-second demo](https://vignesh-chaturvedi.github.io/relayscope/): one real mainnet donation, from the stream alert to the payout and the checks.
 
 An independent, unofficial project.
 
